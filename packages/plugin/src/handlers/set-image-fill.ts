@@ -28,6 +28,7 @@ export const createSetImageFillHandler =
       nodeId?: unknown;
       data?: unknown;
       mode?: unknown;
+      imageFillIndex?: unknown;
       scaleMode?: unknown;
     };
     if (typeof p.nodeId !== 'string') {
@@ -39,6 +40,16 @@ export const createSetImageFillHandler =
     const mode: ImageFillMode = p.mode === undefined ? 'replace' : (p.mode as ImageFillMode);
     if (mode !== 'replace' && mode !== 'add') {
       throw new TypeError('set_image_fill: mode must be replace or add');
+    }
+    const requestedImageFillIndex = p.imageFillIndex;
+    if (
+      requestedImageFillIndex !== undefined &&
+      (!Number.isInteger(requestedImageFillIndex) || (requestedImageFillIndex as number) < 0)
+    ) {
+      throw new TypeError('set_image_fill: imageFillIndex must be a non-negative integer');
+    }
+    if (mode === 'add' && requestedImageFillIndex !== undefined) {
+      throw new TypeError('set_image_fill: imageFillIndex is only valid in replace mode');
     }
     const scaleMode = p.scaleMode as ScaleMode | undefined;
     if (scaleMode !== undefined && !SCALE_MODES.includes(scaleMode)) {
@@ -55,13 +66,22 @@ export const createSetImageFillHandler =
 
     const fills = [...node.fills];
     const imageIndices = fills.flatMap((paint, index) => (paint.type === 'IMAGE' ? [index] : []));
-    if (imageIndices.length > 1) {
+    if (mode === 'replace' && requestedImageFillIndex === undefined && imageIndices.length > 1) {
       throw new Error(
-        `set_image_fill: node ${p.nodeId} has ${imageIndices.length} IMAGE fills; multiple IMAGE fills are not supported`,
+        `set_image_fill: node ${p.nodeId} has ${imageIndices.length} IMAGE fills; provide imageFillIndex`,
       );
     }
-    if (mode === 'replace' && imageIndices.length !== 1) {
+    if (mode === 'replace' && requestedImageFillIndex === undefined && imageIndices.length !== 1) {
       throw new Error(`set_image_fill: node ${p.nodeId} has no IMAGE fill to replace`);
+    }
+    if (
+      mode === 'replace' &&
+      requestedImageFillIndex !== undefined &&
+      fills[requestedImageFillIndex as number]?.type !== 'IMAGE'
+    ) {
+      throw new Error(
+        `set_image_fill: fill ${requestedImageFillIndex as number} on node ${p.nodeId} is not an IMAGE fill`,
+      );
     }
     if (mode === 'add' && imageIndices.length !== 0) {
       throw new Error(`set_image_fill: node ${p.nodeId} already has an IMAGE fill`);
@@ -78,7 +98,10 @@ export const createSetImageFillHandler =
     let imageFillIndex: number;
     let previousImageHash: string | null = null;
     if (mode === 'replace') {
-      imageFillIndex = imageIndices[0]!;
+      imageFillIndex =
+        requestedImageFillIndex === undefined
+          ? imageIndices[0]!
+          : (requestedImageFillIndex as number);
       const previous = fills[imageFillIndex] as ImagePaint;
       previousImageHash = previous.imageHash;
       fills[imageFillIndex] = {

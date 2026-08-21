@@ -15,7 +15,15 @@ const inputSchema = z.object({
   mode: z
     .enum(['replace', 'add'])
     .optional()
-    .describe('replace the single existing IMAGE fill (default), or add one when none exists'),
+    .describe('replace an existing IMAGE fill (default), or add one when none exists'),
+  imageFillIndex: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe(
+      'Exact fills-array index to replace when the node has multiple IMAGE fills; replace mode only',
+    ),
   scaleMode: z
     .enum(['FILL', 'FIT', 'CROP', 'TILE'])
     .optional()
@@ -26,11 +34,12 @@ export const setImageFillTool: ToolSpec = {
   name: SET_IMAGE_FILL_TOOL_NAME,
   description:
     'Set a local raster image on an existing RECTANGLE without replacing the node. filePath must ' +
-    'point to a PNG / JPG / GIF no larger than 2 MiB. mode=replace (default) requires exactly one ' +
-    "IMAGE fill and preserves that paint's crop, filters, opacity, visibility, blend mode, and " +
+    'point to a PNG / JPG / GIF no larger than 2 MiB. mode=replace (default) replaces the only ' +
+    'IMAGE fill, or the exact IMAGE fill selected by imageFillIndex when several exist, and preserves ' +
+    "that paint's crop, filters, opacity, visibility, blend mode, and " +
     'position in the fills array; mode=add requires no IMAGE fill and appends the new image above ' +
-    'the existing fills. Multiple IMAGE fills are rejected. Returns the same nodeId plus the changed ' +
-    'fill index and intrinsic image size.',
+    'the existing fills. Ambiguous multiple IMAGE fills without imageFillIndex are rejected. Returns ' +
+    'the same nodeId plus the changed fill index and intrinsic image size.',
   inputSchema,
   kind: 'write',
   // filePath stays on the MCP server. The plugin receives the validated bytes as base64 data.
@@ -89,6 +98,7 @@ export const handleSetImageFill = async (
     data: image.bytes.toString('base64'),
     requestId,
     ...(args.mode !== undefined ? { mode: args.mode } : {}),
+    ...(args.imageFillIndex !== undefined ? { imageFillIndex: args.imageFillIndex } : {}),
     ...(args.scaleMode !== undefined ? { scaleMode: args.scaleMode } : {}),
   });
 };

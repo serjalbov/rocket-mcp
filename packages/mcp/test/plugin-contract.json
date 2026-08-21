@@ -57,7 +57,7 @@
       "nodeId",
       "requestId"
     ],
-    "set_image_fill": ["data", "mode", "nodeId", "requestId", "scaleMode"],
+    "set_image_fill": ["data", "imageFillIndex", "mode", "nodeId", "requestId", "scaleMode"],
     "set_text": ["characters", "nodeId", "requestId"],
     "set_text_properties": [
       "fontName",

@@ -86,6 +86,41 @@ describe('set_image_fill handler', () => {
     ]);
   });
 
+  it('replaces the exact requested IMAGE fill when several exist', async () => {
+    const lowerImage = {
+      type: 'IMAGE',
+      imageHash: 'LOWER_HASH',
+      scaleMode: 'FIT',
+      opacity: 0.5,
+    };
+    const upperImage = {
+      type: 'IMAGE',
+      imageHash: 'UPPER_HASH',
+      scaleMode: 'CROP',
+      filters: { contrast: 0.2 },
+    };
+    const node: FakeRectangle = {
+      id: '1:2',
+      type: 'RECTANGLE',
+      fills: [{ type: 'SOLID' }, lowerImage, upperImage],
+    };
+    const { figma: f } = makeFigma(node);
+
+    const result = (await createSetImageFillHandler(f)({
+      nodeId: '1:2',
+      data: 'cG5n',
+      imageFillIndex: 2,
+    })) as SetImageFillResult;
+
+    expect(node.fills).toEqual([
+      { type: 'SOLID' },
+      lowerImage,
+      { ...upperImage, imageHash: 'NEW_HASH' },
+    ]);
+    expect(result.imageFillIndex).toBe(2);
+    expect(result.previousImageHash).toBe('UPPER_HASH');
+  });
+
   it('adds a new IMAGE fill above existing paints only in add mode', async () => {
     const solid = { type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } };
     const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills: [solid] };
@@ -168,7 +203,7 @@ describe('set_image_fill handler', () => {
           { type: 'IMAGE', imageHash: 'A', scaleMode: 'FILL' },
           { type: 'IMAGE', imageHash: 'B', scaleMode: 'FIT' },
         ],
-        error: /multiple IMAGE fills/,
+        error: /provide imageFillIndex/,
       },
       {
         fills: [{ type: 'IMAGE', imageHash: 'A', scaleMode: 'FILL' }],
@@ -190,6 +225,29 @@ describe('set_image_fill handler', () => {
         }),
       ).rejects.toThrow(item.error);
       expect(node.fills).toBe(before);
+      expect(createImage).not.toHaveBeenCalled();
+    }
+  });
+
+  it('rejects an invalid or non-IMAGE imageFillIndex before mutation', async () => {
+    const cases: Array<{ imageFillIndex: unknown; error: RegExp }> = [
+      { imageFillIndex: -1, error: /non-negative integer/ },
+      { imageFillIndex: 1.5, error: /non-negative integer/ },
+      { imageFillIndex: 0, error: /is not an IMAGE fill/ },
+      { imageFillIndex: 9, error: /is not an IMAGE fill/ },
+    ];
+    for (const item of cases) {
+      const fills = [{ type: 'SOLID' }, { type: 'IMAGE', imageHash: 'OLD', scaleMode: 'CROP' }];
+      const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills };
+      const { figma: f, createImage } = makeFigma(node);
+      await expect(
+        createSetImageFillHandler(f)({
+          nodeId: '1:2',
+          data: 'cG5n',
+          imageFillIndex: item.imageFillIndex,
+        }),
+      ).rejects.toThrow(item.error);
+      expect(node.fills).toBe(fills);
       expect(createImage).not.toHaveBeenCalled();
     }
   });

@@ -41,6 +41,7 @@ describe('set_image_fill — definition', () => {
         nodeId: { type: 'string' },
         filePath: { type: 'string' },
         mode: { type: 'string', enum: ['replace', 'add'] },
+        imageFillIndex: { type: 'integer', minimum: 0 },
         scaleMode: { type: 'string', enum: ['FILL', 'FIT', 'CROP', 'TILE'] },
       },
     });
@@ -90,7 +91,13 @@ describe('handleSetImageFill', () => {
     await expect(
       handleSetImageFill(
         dispatch,
-        { nodeId: '1:2', filePath: path, mode: 'replace', scaleMode: 'CROP' },
+        {
+          nodeId: '1:2',
+          filePath: path,
+          mode: 'replace',
+          imageFillIndex: 2,
+          scaleMode: 'CROP',
+        },
         'request-1',
       ),
     ).resolves.toEqual({ ok: true, nodeId: '1:2' });
@@ -99,6 +106,7 @@ describe('handleSetImageFill', () => {
       data: bytes.toString('base64'),
       requestId: 'request-1',
       mode: 'replace',
+      imageFillIndex: 2,
       scaleMode: 'CROP',
     });
   });
