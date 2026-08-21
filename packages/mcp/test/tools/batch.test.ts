@@ -28,7 +28,7 @@ describe('handleBatch', () => {
         ops: [
           {
             tool: 'set_image_fill',
-            params: { nodeId: '1:2', filePath, imageFillIndex: 2 },
+            params: { nodeId: '1:2', filePath },
           },
         ],
       },
@@ -40,7 +40,7 @@ describe('handleBatch', () => {
       ops: [
         {
           tool: 'set_image_fill',
-          params: { nodeId: '1:2', imageFillIndex: 2, bytes },
+          params: { nodeId: '1:2', bytes },
         },
       ],
     });

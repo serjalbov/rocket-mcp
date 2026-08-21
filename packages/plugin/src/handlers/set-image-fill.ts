@@ -12,14 +12,16 @@ export interface SetImageFillResult {
   mode: ImageFillMode;
   imageFillIndex: number;
   previousImageHash: string | null;
+  removedImageCount: number;
   imageHash: string;
   width: number;
   height: number;
 }
 
 /**
- * Replace or add one IMAGE paint while leaving the RECTANGLE itself and every unrelated paint
- * untouched. Validation completes before assigning `fills`, so every rejected call is read-only.
+ * Reconcile a RECTANGLE to exactly one IMAGE paint. Every existing IMAGE paint is removed, while
+ * the topmost one's settings and stacking position are carried to the replacement. Non-IMAGE paints
+ * and every node-level property remain untouched. Validation completes before assigning `fills`.
  */
 export const createSetImageFillHandler =
   (figmaCtx: typeof figma): SandboxToolHandler =>
@@ -27,8 +29,6 @@ export const createSetImageFillHandler =
     const p = (params ?? {}) as {
       nodeId?: unknown;
       bytes?: unknown;
-      mode?: unknown;
-      imageFillIndex?: unknown;
       scaleMode?: unknown;
     };
     if (typeof p.nodeId !== 'string') {
@@ -36,20 +36,6 @@ export const createSetImageFillHandler =
     }
     if (!(p.bytes instanceof Uint8Array) || p.bytes.byteLength === 0) {
       throw new TypeError('set_image_fill: bytes must be a non-empty Uint8Array');
-    }
-    const mode: ImageFillMode = p.mode === undefined ? 'replace' : (p.mode as ImageFillMode);
-    if (mode !== 'replace' && mode !== 'add') {
-      throw new TypeError('set_image_fill: mode must be replace or add');
-    }
-    const requestedImageFillIndex = p.imageFillIndex;
-    if (
-      requestedImageFillIndex !== undefined &&
-      (!Number.isInteger(requestedImageFillIndex) || (requestedImageFillIndex as number) < 0)
-    ) {
-      throw new TypeError('set_image_fill: imageFillIndex must be a non-negative integer');
-    }
-    if (mode === 'add' && requestedImageFillIndex !== undefined) {
-      throw new TypeError('set_image_fill: imageFillIndex is only valid in replace mode');
     }
     const scaleMode = p.scaleMode as ScaleMode | undefined;
     if (scaleMode !== undefined && !SCALE_MODES.includes(scaleMode)) {
@@ -66,26 +52,6 @@ export const createSetImageFillHandler =
 
     const fills = [...node.fills];
     const imageIndices = fills.flatMap((paint, index) => (paint.type === 'IMAGE' ? [index] : []));
-    if (mode === 'replace' && requestedImageFillIndex === undefined && imageIndices.length > 1) {
-      throw new Error(
-        `set_image_fill: node ${p.nodeId} has ${imageIndices.length} IMAGE fills; provide imageFillIndex`,
-      );
-    }
-    if (mode === 'replace' && requestedImageFillIndex === undefined && imageIndices.length !== 1) {
-      throw new Error(`set_image_fill: node ${p.nodeId} has no IMAGE fill to replace`);
-    }
-    if (
-      mode === 'replace' &&
-      requestedImageFillIndex !== undefined &&
-      fills[requestedImageFillIndex as number]?.type !== 'IMAGE'
-    ) {
-      throw new Error(
-        `set_image_fill: fill ${requestedImageFillIndex as number} on node ${p.nodeId} is not an IMAGE fill`,
-      );
-    }
-    if (mode === 'add' && imageIndices.length !== 0) {
-      throw new Error(`set_image_fill: node ${p.nodeId} already has an IMAGE fill`);
-    }
 
     const image = figmaCtx.createImage(p.bytes);
     const size = await image.getSizeAsync();
@@ -95,32 +61,26 @@ export const createSetImageFillHandler =
       );
     }
 
-    let imageFillIndex: number;
-    let previousImageHash: string | null = null;
-    if (mode === 'replace') {
-      imageFillIndex =
-        requestedImageFillIndex === undefined
-          ? imageIndices[0]!
-          : (requestedImageFillIndex as number);
-      const previous = fills[imageFillIndex] as ImagePaint;
-      previousImageHash = previous.imageHash;
-      fills[imageFillIndex] = {
-        ...previous,
-        imageHash: image.hash,
-        ...(scaleMode !== undefined ? { scaleMode } : {}),
-      };
-    } else {
-      imageFillIndex = fills.length;
-      fills.push({ type: 'IMAGE', imageHash: image.hash, scaleMode: scaleMode ?? 'FILL' });
-    }
-
-    node.fills = fills;
+    const topImageIndex = imageIndices.at(-1);
+    const previous = topImageIndex === undefined ? null : (fills[topImageIndex] as ImagePaint);
+    const retainedFills = fills.filter(paint => paint.type !== 'IMAGE');
+    const imageFillIndex =
+      topImageIndex === undefined
+        ? retainedFills.length
+        : fills.slice(0, topImageIndex).filter(paint => paint.type !== 'IMAGE').length;
+    const replacement: ImagePaint =
+      previous === null
+        ? { type: 'IMAGE', imageHash: image.hash, scaleMode: scaleMode ?? 'FILL' }
+        : { ...previous, imageHash: image.hash, ...(scaleMode !== undefined ? { scaleMode } : {}) };
+    retainedFills.splice(imageFillIndex, 0, replacement);
+    node.fills = retainedFills;
     const result: SetImageFillResult = {
       ok: true,
       nodeId: node.id,
-      mode,
+      mode: previous === null ? 'add' : 'replace',
       imageFillIndex,
-      previousImageHash,
+      previousImageHash: previous?.imageHash ?? null,
+      removedImageCount: imageIndices.length,
       imageHash: image.hash,
       width: size.width,
       height: size.height,

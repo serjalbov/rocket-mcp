@@ -34,11 +34,18 @@ const makeFigma = (
 };
 
 describe('set_image_fill handler', () => {
-  it('replaces only the existing IMAGE hash and preserves all paint settings and other fills', async () => {
+  it('removes every existing IMAGE fill and preserves the topmost settings and stacking position', async () => {
     const solid = { type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 }, opacity: 1 };
-    const oldImage = {
+    const lowerImage = {
       type: 'IMAGE',
-      imageHash: 'OLD_HASH',
+      imageHash: 'LOWER_HASH',
+      scaleMode: 'FIT',
+      opacity: 0.5,
+    };
+    const middleSolid = { type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 0.3 };
+    const upperImage = {
+      type: 'IMAGE',
+      imageHash: 'UPPER_HASH',
       scaleMode: 'CROP',
       imageTransform: [
         [1, 0, 0.2],
@@ -49,7 +56,12 @@ describe('set_image_fill handler', () => {
       visible: true,
       blendMode: 'MULTIPLY',
     };
-    const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills: [solid, oldImage] };
+    const trailingSolid = { type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 0.2 };
+    const node: FakeRectangle = {
+      id: '1:2',
+      type: 'RECTANGLE',
+      fills: [solid, lowerImage, middleSolid, upperImage, trailingSolid],
+    };
     const { figma: f } = makeFigma(node);
 
     const result = (await createSetImageFillHandler(f)({
@@ -57,13 +69,19 @@ describe('set_image_fill handler', () => {
       bytes: IMAGE_BYTES,
     })) as SetImageFillResult;
 
-    expect(node.fills).toEqual([solid, { ...oldImage, imageHash: 'NEW_HASH' }]);
+    expect(node.fills).toEqual([
+      solid,
+      middleSolid,
+      { ...upperImage, imageHash: 'NEW_HASH' },
+      trailingSolid,
+    ]);
     expect(result).toEqual({
       ok: true,
       nodeId: '1:2',
       mode: 'replace',
-      imageFillIndex: 1,
-      previousImageHash: 'OLD_HASH',
+      imageFillIndex: 2,
+      previousImageHash: 'UPPER_HASH',
+      removedImageCount: 2,
       imageHash: 'NEW_HASH',
       width: 1024,
       height: 768,
@@ -87,49 +105,13 @@ describe('set_image_fill handler', () => {
     ]);
   });
 
-  it('replaces the exact requested IMAGE fill when several exist', async () => {
-    const lowerImage = {
-      type: 'IMAGE',
-      imageHash: 'LOWER_HASH',
-      scaleMode: 'FIT',
-      opacity: 0.5,
-    };
-    const upperImage = {
-      type: 'IMAGE',
-      imageHash: 'UPPER_HASH',
-      scaleMode: 'CROP',
-      filters: { contrast: 0.2 },
-    };
-    const node: FakeRectangle = {
-      id: '1:2',
-      type: 'RECTANGLE',
-      fills: [{ type: 'SOLID' }, lowerImage, upperImage],
-    };
-    const { figma: f } = makeFigma(node);
-
-    const result = (await createSetImageFillHandler(f)({
-      nodeId: '1:2',
-      bytes: IMAGE_BYTES,
-      imageFillIndex: 2,
-    })) as SetImageFillResult;
-
-    expect(node.fills).toEqual([
-      { type: 'SOLID' },
-      lowerImage,
-      { ...upperImage, imageHash: 'NEW_HASH' },
-    ]);
-    expect(result.imageFillIndex).toBe(2);
-    expect(result.previousImageHash).toBe('UPPER_HASH');
-  });
-
-  it('adds a new IMAGE fill above existing paints only in add mode', async () => {
+  it('adds a new IMAGE fill above existing paints when no IMAGE fill exists', async () => {
     const solid = { type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } };
     const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills: [solid] };
     const { figma: f } = makeFigma(node);
     const result = (await createSetImageFillHandler(f)({
       nodeId: '1:2',
       bytes: IMAGE_BYTES,
-      mode: 'add',
       scaleMode: 'FILL',
     })) as SetImageFillResult;
 
@@ -139,6 +121,7 @@ describe('set_image_fill handler', () => {
     ]);
     expect(result.imageFillIndex).toBe(1);
     expect(result.previousImageHash).toBeNull();
+    expect(result.removedImageCount).toBe(0);
   });
 
   it('preserves every node-level property while replacing the image', async () => {
@@ -196,61 +179,16 @@ describe('set_image_fill handler', () => {
     expect(node.parent.children).toEqual(['before', '1:2', 'after']);
   });
 
-  it('rejects ambiguous fill states before creating an image or changing fills', async () => {
-    const cases: Array<{ fills: unknown; mode?: 'replace' | 'add'; error: RegExp }> = [
-      { fills: [], error: /no IMAGE fill/ },
-      {
-        fills: [
-          { type: 'IMAGE', imageHash: 'A', scaleMode: 'FILL' },
-          { type: 'IMAGE', imageHash: 'B', scaleMode: 'FIT' },
-        ],
-        error: /provide imageFillIndex/,
-      },
-      {
-        fills: [{ type: 'IMAGE', imageHash: 'A', scaleMode: 'FILL' }],
-        mode: 'add',
-        error: /already has an IMAGE fill/,
-      },
-      { fills: Symbol('mixed'), error: /mixed fills/ },
-    ];
+  it('rejects mixed fills before creating an image or changing fills', async () => {
+    const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills: Symbol('mixed') };
+    const before = node.fills;
+    const { figma: f, createImage } = makeFigma(node);
 
-    for (const item of cases) {
-      const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills: item.fills };
-      const before = node.fills;
-      const { figma: f, createImage } = makeFigma(node);
-      await expect(
-        createSetImageFillHandler(f)({
-          nodeId: '1:2',
-          bytes: IMAGE_BYTES,
-          ...(item.mode !== undefined ? { mode: item.mode } : {}),
-        }),
-      ).rejects.toThrow(item.error);
-      expect(node.fills).toBe(before);
-      expect(createImage).not.toHaveBeenCalled();
-    }
-  });
-
-  it('rejects an invalid or non-IMAGE imageFillIndex before mutation', async () => {
-    const cases: Array<{ imageFillIndex: unknown; error: RegExp }> = [
-      { imageFillIndex: -1, error: /non-negative integer/ },
-      { imageFillIndex: 1.5, error: /non-negative integer/ },
-      { imageFillIndex: 0, error: /is not an IMAGE fill/ },
-      { imageFillIndex: 9, error: /is not an IMAGE fill/ },
-    ];
-    for (const item of cases) {
-      const fills = [{ type: 'SOLID' }, { type: 'IMAGE', imageHash: 'OLD', scaleMode: 'CROP' }];
-      const node: FakeRectangle = { id: '1:2', type: 'RECTANGLE', fills };
-      const { figma: f, createImage } = makeFigma(node);
-      await expect(
-        createSetImageFillHandler(f)({
-          nodeId: '1:2',
-          bytes: IMAGE_BYTES,
-          imageFillIndex: item.imageFillIndex,
-        }),
-      ).rejects.toThrow(item.error);
-      expect(node.fills).toBe(fills);
-      expect(createImage).not.toHaveBeenCalled();
-    }
+    await expect(
+      createSetImageFillHandler(f)({ nodeId: '1:2', bytes: IMAGE_BYTES }),
+    ).rejects.toThrow(/mixed fills/);
+    expect(node.fills).toBe(before);
+    expect(createImage).not.toHaveBeenCalled();
   });
 
   it('rejects non-rectangles, missing nodes, bad input, and oversized images without mutation', async () => {
