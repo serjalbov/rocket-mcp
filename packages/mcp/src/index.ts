@@ -30,6 +30,7 @@ import { ALL_TOOL_SPECS } from './tools/registry.js';
 import { handleSaveImageFills, SAVE_IMAGE_FILLS_TOOL_NAME } from './tools/save-image-fills.js';
 import { handleSaveScreenshots, SAVE_SCREENSHOTS_TOOL_NAME } from './tools/save-screenshots.js';
 import { handleScanComponents, SCAN_COMPONENTS_TOOL_NAME } from './tools/scan-components.js';
+import { handleSetImageFill, SET_IMAGE_FILL_TOOL_NAME } from './tools/set-image-fill.js';
 import { captureSkew, withSkewNotice } from './tools/skew-notice.js';
 import { handleTokenMap, TOKEN_MAP_TOOL_NAME } from './tools/token-map.js';
 
@@ -121,6 +122,8 @@ const SPECIAL_HANDLERS: Record<string, ToolHandler> = {
     textResult(await handleSaveScreenshots(dispatch, args)),
   [SAVE_IMAGE_FILLS_TOOL_NAME]: async args =>
     textResult(await handleSaveImageFills(dispatch, args)),
+  [SET_IMAGE_FILL_TOOL_NAME]: async args =>
+    textResult(await handleSetImageFill(dispatch, args, newId())),
   [EXPORT_PDF_TOOL_NAME]: async args => textResult(await handleExportPdf(dispatch, args)),
   [EXPORT_VIDEO_TOOL_NAME]: async args => textResult(await handleExportVideo(dispatch, args)),
   // forVision marks this as the path whose rasters are inlined into the model's context, so the

@@ -328,6 +328,7 @@ const setTimelineDurationInverse: BatchInverse = {
 const INVERSES: Readonly<Record<string, BatchInverse>> = {
   // Single-node property mutations.
   set_fills: nodeProps('set_fills', ['fills']),
+  set_image_fill: nodeProps('set_image_fill', ['fills']),
   // Snapshot every field the handler can write, not just the headline one: a subset snapshot would
   // "roll back" while silently leaving the rest changed. The per-side weights are also what rescue
   // a node whose uniform strokeWeight reads figma.mixed (a symbol, skipped by `restorable`) — they

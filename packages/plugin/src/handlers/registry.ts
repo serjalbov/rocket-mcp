@@ -84,6 +84,7 @@ import { createSetConstraintsHandler } from './set-constraints.js';
 import { createSetCornerRadiusHandler } from './set-corner-radius.js';
 import { createSetEffectsHandler } from './set-effects.js';
 import { createSetFillsHandler } from './set-fills.js';
+import { createSetImageFillHandler } from './set-image-fill.js';
 import { createSetInstancePropertiesHandler } from './set-instance-properties.js';
 import { createSetLayoutGridsHandler } from './set-layout-grids.js';
 import { createSetLayoutPropsHandler } from './set-layout-props.js';
@@ -118,6 +119,7 @@ export const createSandboxHandlers = (figmaCtx: typeof figma): SandboxHandlers =
 
   const rawWrites: SandboxHandlers = {
     set_fills: createSetFillsHandler(figmaCtx),
+    set_image_fill: createSetImageFillHandler(figmaCtx),
     set_text: createSetTextHandler(figmaCtx),
     set_text_properties: createSetTextPropertiesHandler(figmaCtx),
     set_text_range: createSetTextRangeHandler(figmaCtx),

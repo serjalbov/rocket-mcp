@@ -93,6 +93,7 @@ import { setConstraintsTool } from './set-constraints.js';
 import { setCornerRadiusTool } from './set-corner-radius.js';
 import { setEffectsTool } from './set-effects.js';
 import { setFillsTool } from './set-fills.js';
+import { setImageFillTool } from './set-image-fill.js';
 import { setInstancePropertiesTool } from './set-instance-properties.js';
 import { setLayoutGridsTool } from './set-layout-grids.js';
 import { setLayoutPropsTool } from './set-layout-props.js';
@@ -157,6 +158,7 @@ export const ALL_TOOL_SPECS: readonly ToolSpec[] = [
   designDiffTool,
   // Writes
   setFillsTool,
+  setImageFillTool,
   setTextTool,
   setTextPropertiesTool,
   setTextRangeTool,
