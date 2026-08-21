@@ -42,9 +42,9 @@ export const setImageFillTool: ToolSpec = {
     'the same nodeId plus the changed fill index and intrinsic image size.',
   inputSchema,
   kind: 'write',
-  // filePath stays on the MCP server. The plugin receives the validated bytes as base64 data.
+  // filePath stays on the MCP server. The plugin receives native bytes through msgpack `bin`.
   serverOnlyArgs: ['filePath'],
-  injectedArgs: ['data'],
+  injectedArgs: ['bytes'],
 };
 
 export interface LocalImagePayload {
@@ -85,7 +85,7 @@ export const readLocalImage = async (filePath: string): Promise<LocalImagePayloa
 
 export type ToolDispatcher = (toolName: string, args: unknown) => Promise<unknown>;
 
-/** Read the server-local file, then dispatch only validated base64 bytes to the Figma plugin. */
+/** Read the server-local file, then dispatch validated native bytes to the Figma plugin. */
 export const handleSetImageFill = async (
   dispatch: ToolDispatcher,
   rawArgs: unknown,
@@ -95,7 +95,7 @@ export const handleSetImageFill = async (
   const image = await readLocalImage(args.filePath);
   return dispatch(SET_IMAGE_FILL_TOOL_NAME, {
     nodeId: args.nodeId,
-    data: image.bytes.toString('base64'),
+    bytes: image.bytes,
     requestId,
     ...(args.mode !== undefined ? { mode: args.mode } : {}),
     ...(args.imageFillIndex !== undefined ? { imageFillIndex: args.imageFillIndex } : {}),

@@ -33,7 +33,7 @@ describe('set_image_fill — definition', () => {
     expect(setImageFillTool.kind).toBe('write');
     expect(setImageFillTool.destructive).toBeUndefined();
     expect(setImageFillTool.serverOnlyArgs).toEqual(['filePath']);
-    expect(setImageFillTool.injectedArgs).toEqual(['data']);
+    expect(setImageFillTool.injectedArgs).toEqual(['bytes']);
     expect(definition.inputSchema).toMatchObject({
       type: 'object',
       required: ['nodeId', 'filePath'],
@@ -81,7 +81,7 @@ describe('readLocalImage', () => {
 });
 
 describe('handleSetImageFill', () => {
-  it('keeps filePath on the server and dispatches validated base64 bytes', async () => {
+  it('keeps filePath on the server and dispatches validated native bytes', async () => {
     const dir = await makeDir();
     const path = join(dir, 'product.png');
     const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
@@ -103,7 +103,7 @@ describe('handleSetImageFill', () => {
     ).resolves.toEqual({ ok: true, nodeId: '1:2' });
     expect(dispatch).toHaveBeenCalledWith('set_image_fill', {
       nodeId: '1:2',
-      data: bytes.toString('base64'),
+      bytes,
       requestId: 'request-1',
       mode: 'replace',
       imageFillIndex: 2,

@@ -17,6 +17,7 @@ import { normalizeIdArgs } from './node-id.js';
 import { PROMPTS } from './prompts/registry.js';
 import { ANALYZE_PROJECT_TOOL_NAME, handleAnalyzeProject } from './tools/analyze-project.js';
 import { annotationsFor } from './tools/annotations.js';
+import { BATCH_TOOL_NAME, handleBatch } from './tools/batch.js';
 import { COMPONENT_MAP_TOOL_NAME, handleComponentMap } from './tools/component-map.js';
 import { handleDesignContext } from './tools/design-context-guard.js';
 import { DESIGN_DIFF_TOOL_NAME, handleDesignDiff } from './tools/design-diff.js';
@@ -124,6 +125,7 @@ const SPECIAL_HANDLERS: Record<string, ToolHandler> = {
     textResult(await handleSaveImageFills(dispatch, args)),
   [SET_IMAGE_FILL_TOOL_NAME]: async args =>
     textResult(await handleSetImageFill(dispatch, args, newId())),
+  [BATCH_TOOL_NAME]: async args => textResult(await handleBatch(dispatch, args, newId())),
   [EXPORT_PDF_TOOL_NAME]: async args => textResult(await handleExportPdf(dispatch, args)),
   [EXPORT_VIDEO_TOOL_NAME]: async args => textResult(await handleExportVideo(dispatch, args)),
   // forVision marks this as the path whose rasters are inlined into the model's context, so the

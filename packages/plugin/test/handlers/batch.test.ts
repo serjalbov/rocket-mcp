@@ -211,7 +211,10 @@ describe('batch handler', () => {
     await expect(
       handler({
         ops: [
-          { tool: 'set_image_fill', params: { nodeId: '1:1', data: 'cG5n' } },
+          {
+            tool: 'set_image_fill',
+            params: { nodeId: '1:1', bytes: new Uint8Array([1, 2, 3]) },
+          },
           { tool: 'set_fills', params: { nodeId: '1:2', fills: [{ type: 'GRADIENT_LINEAR' }] } },
         ],
       }),

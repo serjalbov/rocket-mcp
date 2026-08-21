@@ -12,6 +12,8 @@ interface FakeRectangle {
   fills: unknown;
 }
 
+const IMAGE_BYTES = new Uint8Array([1, 2, 3]);
+
 const makeFigma = (
   node: FakeRectangle | { id: string; type: string },
   size = { width: 1024, height: 768 },
@@ -25,7 +27,6 @@ const makeFigma = (
   return {
     createImage,
     figma: {
-      base64Decode: vi.fn<(data: string) => Uint8Array>(() => new Uint8Array([1, 2, 3])),
       createImage,
       getNodeByIdAsync: async (id: string) => (id === node.id ? node : null),
     } as unknown as typeof figma,
@@ -53,7 +54,7 @@ describe('set_image_fill handler', () => {
 
     const result = (await createSetImageFillHandler(f)({
       nodeId: '1:2',
-      data: 'cG5n',
+      bytes: IMAGE_BYTES,
     })) as SetImageFillResult;
 
     expect(node.fills).toEqual([solid, { ...oldImage, imageHash: 'NEW_HASH' }]);
@@ -78,7 +79,7 @@ describe('set_image_fill handler', () => {
     const { figma: f } = makeFigma(node);
     await createSetImageFillHandler(f)({
       nodeId: '1:2',
-      data: 'cG5n',
+      bytes: IMAGE_BYTES,
       scaleMode: 'FIT',
     });
     expect(node.fills).toEqual([
@@ -108,7 +109,7 @@ describe('set_image_fill handler', () => {
 
     const result = (await createSetImageFillHandler(f)({
       nodeId: '1:2',
-      data: 'cG5n',
+      bytes: IMAGE_BYTES,
       imageFillIndex: 2,
     })) as SetImageFillResult;
 
@@ -127,7 +128,7 @@ describe('set_image_fill handler', () => {
     const { figma: f } = makeFigma(node);
     const result = (await createSetImageFillHandler(f)({
       nodeId: '1:2',
-      data: 'cG5n',
+      bytes: IMAGE_BYTES,
       mode: 'add',
       scaleMode: 'FILL',
     })) as SetImageFillResult;
@@ -175,7 +176,7 @@ describe('set_image_fill handler', () => {
       visible: node.visible,
     };
     const { figma: f } = makeFigma(node);
-    await createSetImageFillHandler(f)({ nodeId: '1:2', data: 'cG5n' });
+    await createSetImageFillHandler(f)({ nodeId: '1:2', bytes: IMAGE_BYTES });
 
     expect({
       x: node.x,
@@ -220,7 +221,7 @@ describe('set_image_fill handler', () => {
       await expect(
         createSetImageFillHandler(f)({
           nodeId: '1:2',
-          data: 'cG5n',
+          bytes: IMAGE_BYTES,
           ...(item.mode !== undefined ? { mode: item.mode } : {}),
         }),
       ).rejects.toThrow(item.error);
@@ -243,7 +244,7 @@ describe('set_image_fill handler', () => {
       await expect(
         createSetImageFillHandler(f)({
           nodeId: '1:2',
-          data: 'cG5n',
+          bytes: IMAGE_BYTES,
           imageFillIndex: item.imageFillIndex,
         }),
       ).rejects.toThrow(item.error);
@@ -256,12 +257,12 @@ describe('set_image_fill handler', () => {
     const frame = { id: 'F:1', type: 'FRAME' };
     const { figma: frameFigma } = makeFigma(frame);
     await expect(
-      createSetImageFillHandler(frameFigma)({ nodeId: 'F:1', data: 'cG5n' }),
+      createSetImageFillHandler(frameFigma)({ nodeId: 'F:1', bytes: IMAGE_BYTES }),
     ).rejects.toThrow(/not a RECTANGLE/);
     await expect(
-      createSetImageFillHandler(frameFigma)({ nodeId: 'missing', data: 'cG5n' }),
+      createSetImageFillHandler(frameFigma)({ nodeId: 'missing', bytes: IMAGE_BYTES }),
     ).rejects.toThrow(/not a RECTANGLE/);
-    await expect(createSetImageFillHandler(frameFigma)({ nodeId: 'F:1' })).rejects.toThrow(/data/);
+    await expect(createSetImageFillHandler(frameFigma)({ nodeId: 'F:1' })).rejects.toThrow(/bytes/);
 
     const node: FakeRectangle = {
       id: '1:2',
@@ -274,7 +275,7 @@ describe('set_image_fill handler', () => {
       height: 100,
     });
     await expect(
-      createSetImageFillHandler(oversizedFigma)({ nodeId: '1:2', data: 'cG5n' }),
+      createSetImageFillHandler(oversizedFigma)({ nodeId: '1:2', bytes: IMAGE_BYTES }),
     ).rejects.toThrow(/maximum/);
     expect(node.fills).toBe(before);
   });

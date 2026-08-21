@@ -26,7 +26,7 @@ export const createSetImageFillHandler =
   async params => {
     const p = (params ?? {}) as {
       nodeId?: unknown;
-      data?: unknown;
+      bytes?: unknown;
       mode?: unknown;
       imageFillIndex?: unknown;
       scaleMode?: unknown;
@@ -34,8 +34,8 @@ export const createSetImageFillHandler =
     if (typeof p.nodeId !== 'string') {
       throw new TypeError('set_image_fill: nodeId must be a string');
     }
-    if (typeof p.data !== 'string' || p.data.length === 0) {
-      throw new TypeError('set_image_fill: data must be non-empty base64 image bytes');
+    if (!(p.bytes instanceof Uint8Array) || p.bytes.byteLength === 0) {
+      throw new TypeError('set_image_fill: bytes must be a non-empty Uint8Array');
     }
     const mode: ImageFillMode = p.mode === undefined ? 'replace' : (p.mode as ImageFillMode);
     if (mode !== 'replace' && mode !== 'add') {
@@ -87,7 +87,7 @@ export const createSetImageFillHandler =
       throw new Error(`set_image_fill: node ${p.nodeId} already has an IMAGE fill`);
     }
 
-    const image = figmaCtx.createImage(figmaCtx.base64Decode(p.data));
+    const image = figmaCtx.createImage(p.bytes);
     const size = await image.getSizeAsync();
     if (size.width > MAX_IMAGE_DIMENSION || size.height > MAX_IMAGE_DIMENSION) {
       throw new Error(

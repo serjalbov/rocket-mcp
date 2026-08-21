@@ -19,6 +19,19 @@ describe('msgpack codec', () => {
     expect(decodeEnvelope(bytes)).toEqual(env);
   });
 
+  it('round-trips native image bytes in request params without base64', () => {
+    const imageBytes = new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3]);
+    const env = createRequest({
+      ...baseInput,
+      method: 'set_image_fill',
+      params: { nodeId: '1:2', bytes: imageBytes },
+    });
+    const decoded = decodeEnvelope(encodeEnvelope(env));
+    const params = (decoded as { params: { bytes: Uint8Array } }).params;
+    expect(params.bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(params.bytes)).toEqual(Array.from(imageBytes));
+  });
+
   it('round-trips a response envelope (binary blob in result)', () => {
     const env = createResponse({ ...baseInput, result: { bin: new Uint8Array([1, 2, 3]) } });
     const decoded = decodeEnvelope(encodeEnvelope(env)) as ResponseEnvelope;
