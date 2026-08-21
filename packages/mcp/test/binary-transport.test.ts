@@ -20,7 +20,7 @@ const sourceFiles = (): string[] =>
   );
 
 describe('binary image transport architecture', () => {
-  it('forbids base64 codecs inside rpx-wright except the MCP image-content boundary', () => {
+  it('forbids base64 codecs inside Rocket-MCP except the MCP image-content boundary', () => {
     const offenders: string[] = [];
     for (const file of sourceFiles()) {
       const source = readFileSync(file, 'utf8');

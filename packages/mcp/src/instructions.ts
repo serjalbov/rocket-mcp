@@ -12,7 +12,7 @@
  * here is paid for on every turn — it earns its place only by describing order and intent, never by
  * restating what a tool's own description already says.
  */
-export const SERVER_INSTRUCTIONS = `rpx-wright connects this codebase to a Figma file in both directions. It needs the rpx-wright plugin open in Figma; \`ping\` reports whether it is, and design tools cannot work until it is.
+export const SERVER_INSTRUCTIONS = `Rocket-MCP connects this codebase to a Figma file in both directions. It needs the Rocket-MCP plugin open in Figma; \`ping\` reports whether it is, and design tools cannot work until it is.
 
 Reading a design into code — ground it, never guess it. \`get_design_context\` is the source of truth for every measurement, colour, font and spacing value. Do not read those off an image: \`get_screenshot\` exists to verify what you built, not to measure what to build. Before generating anything, join the design to what this project already has — \`component_map\`, \`token_map\` and \`icon_map\` match Figma components, variables and icons against the local codebase, and a match means reference the existing one rather than write an equivalent. Real pixels (logos, photography) come from \`save_screenshots\` or \`save_image_fills\`; never approximate them in markup.
 

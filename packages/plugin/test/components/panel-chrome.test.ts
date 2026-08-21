@@ -88,7 +88,7 @@ describe('App window chrome', () => {
     // still runs, and dressing a survivable state as a failure teaches people to ignore the colour.
     contextRef.value = context('default');
     state.status = 'connected';
-    state.versionNotice = 'Figwright plugin v0.3.0 is older than this server (v0.4.0).';
+    state.versionNotice = 'Rocket-MCP plugin v0.3.0 is older than this server (v0.4.0).';
 
     const wrapper = mount(App);
     const banner = wrapper.find('p.wrap-break-word');

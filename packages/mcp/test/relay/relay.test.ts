@@ -327,11 +327,11 @@ describe('Relay hello loop', () => {
     const second = b.relay.skewNotice(sessionId);
     const third = b.relay.skewNotice(sessionId);
 
-    expect(first).toMatch(/releases\/latest/);
+    expect(first).toMatch(/re-import its manifest/);
     // Still says what it is and what it means — a caller seeing only this is not misinformed.
     expect(second).toMatch(/older than this server/i);
     expect(second).toMatch(/unverified/i);
-    expect(second).not.toMatch(/releases\/latest/);
+    expect(second).not.toMatch(/re-import its manifest/);
     expect(second?.length ?? 0).toBeLessThan((first?.length ?? 0) / 2);
     expect(third).toBe(second);
     ws.close();

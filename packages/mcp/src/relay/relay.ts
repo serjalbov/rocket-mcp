@@ -384,7 +384,7 @@ export class Relay {
     if (parsed.data.protocolVersion !== PROTOCOL_VERSION) {
       const message =
         `protocol mismatch: server speaks ${PROTOCOL_VERSION}, plugin speaks ${parsed.data.protocolVersion} — ` +
-        'update the older Figwright half so both match (server: @figwright/mcp, plugin: re-import ' +
+        'update the older Rocket-MCP half so both match (server: rebuild, plugin: re-import ' +
         // The reopen matters: a refused plugin stops retrying (retrying cannot fix it, and a plugin
         // old enough to be refused is old enough to lack any graceful handling of the refusal), so
         // fixing the *server* side leaves the panel sitting on this message until it is reopened.

@@ -125,8 +125,7 @@ export const compareVersions = (a: string, b: string): number | null => {
 export const pluginSkewNotice = (pluginVersion: string, serverVersion: string): string =>
   `${pluginSkewSummary(pluginVersion, serverVersion)} ` +
   'Arguments added after it was built are silently ignored, which is why nothing in the result ' +
-  'itself looks wrong. Update the plugin: download the latest release from ' +
-  'https://github.com/awdr74100/figwright/releases/latest and re-import it in Figma ' +
+  'itself looks wrong. Update the plugin: rebuild Rocket-MCP and re-import its manifest in Figma ' +
   '(Plugins → Development → Import plugin from manifest).';
 
 /**
@@ -145,7 +144,7 @@ export const pluginSkewNotice = (pluginVersion: string, serverVersion: string): 
 export const pluginSkewSummary = (pluginVersion: string, serverVersion: string): string =>
   // `v`-prefixed only when it is really a version. Whatever the peer claimed is echoed as-is
   // otherwise, because an unreadable one dressed up as a version reads as `vnightly`.
-  `Figwright plugin ${parse(pluginVersion) === null ? `"${pluginVersion}"` : `v${pluginVersion}`} ` +
+  `Rocket-MCP plugin ${parse(pluginVersion) === null ? `"${pluginVersion}"` : `v${pluginVersion}`} ` +
   `is older than this server (v${serverVersion}), so this result is unverified — an edit may have ` +
   'applied only part of what was asked, and reads can be incomplete.';
 

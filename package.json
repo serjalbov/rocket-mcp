@@ -1,8 +1,8 @@
 {
-  "name": "rpx-wright",
+  "name": "rocket-mcp",
   "version": "0.0.0",
   "private": true,
-  "description": "Rocketpix fork of Figwright with direct image-fill replacement for existing Figma nodes.",
+  "description": "Rocket-MCP: Rocketpix's Figwright fork with direct image-fill replacement for existing Figma nodes.",
   "homepage": "https://github.com/awdr74100/figwright",
   "bugs": {
     "url": "https://github.com/awdr74100/figwright/issues"

@@ -71,7 +71,7 @@ describe('pluginSkewNotice', () => {
     // plugin's own panel, where "tell the user to…" addresses the person already reading it.
     expect(notice).toMatch(/Update the plugin/);
     expect(notice).not.toMatch(/tell the user/i);
-    expect(notice).toContain('releases/latest');
+    expect(notice).toContain('re-import its manifest');
   });
 
   it('opens with the summary, so the two forms cannot drift apart', () => {

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { captureSkew, reportSkew, withSkewNotice } from '../../src/tools/skew-notice.js';
 
 const result = (text: string): CallToolResult => ({ content: [{ type: 'text', text }] });
-const NOTICE = 'Figwright plugin v0.3.0 is older than this server (v0.4.0).';
+const NOTICE = 'Rocket-MCP plugin v0.3.0 is older than this server (v0.4.0).';
 
 /** A content block's text, or '' — the union also covers image/audio/resource blocks. */
 const textOf = (from: CallToolResult, index: number): string => {

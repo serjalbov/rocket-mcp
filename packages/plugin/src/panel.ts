@@ -53,7 +53,7 @@ export const createPanelController = (figmaCtx: typeof figma): PanelController =
     // Only speak up on a miss: a successful reveal shows itself through the selection, so a toast
     // on top of that is just noise. Silence on a miss, though, would read as a broken button — the
     // usual cause is the call being undone, or the agent deleting what it made.
-    if (revealed === 0) figmaCtx.notify('rpx-wright: those nodes are no longer in this file');
+    if (revealed === 0) figmaCtx.notify('Rocket-MCP: those nodes are no longer in this file');
   };
 
   return {

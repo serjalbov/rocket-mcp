@@ -159,7 +159,7 @@ describe('RelayClient', () => {
     // background (status flips to 'reconnecting') rather than rejecting.
     await expect(client.connect()).resolves.toBeUndefined();
     expect(client.getState().status).toBe('reconnecting');
-    expect(client.getState().lastError).toMatch(/no Figwright server on :3055/);
+    expect(client.getState().lastError).toMatch(/no Rocket-MCP server on :3055/);
     await client.disconnect();
   });
 
@@ -326,7 +326,7 @@ describe('RelayClient', () => {
           id: req.id,
           sessionId: req.sessionId,
           code: ErrorCode.ProtocolMismatch,
-          message: 'plugin too old: this server (v0.4.0) needs the Figwright plugin at v0.4.0',
+          message: 'plugin too old: this server (v0.4.0) needs the Rocket-MCP plugin at v0.4.0',
         }),
       );
     });
@@ -359,7 +359,7 @@ describe('RelayClient', () => {
           id: req.id,
           sessionId: req.sessionId,
           result: helloResult({
-            skewNotice: 'Figwright plugin v0.3.0 is older than this server (v0.4.0).',
+            skewNotice: 'Rocket-MCP plugin v0.3.0 is older than this server (v0.4.0).',
           }),
         }),
       );

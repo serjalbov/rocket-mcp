@@ -184,7 +184,7 @@ export class RelayClient {
       // server starts, and if it never does, a foreign process on that port is the likely culprit.
       lastError:
         this.state.lastError ??
-        `no Figwright server on :${this.opts.ports.join(', ')} yet — it connects automatically once ` +
+        `no Rocket-MCP server on :${this.opts.ports.join(', ')} yet — it connects automatically once ` +
           `the MCP server starts; if it never does, another process may be holding that port`,
     });
     // A refusal is terminal: the way out is re-importing the plugin, which builds a fresh client.

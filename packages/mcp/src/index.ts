@@ -36,7 +36,7 @@ import { handleSetImageFill, SET_IMAGE_FILL_TOOL_NAME } from './tools/set-image-
 import { captureSkew, withSkewNotice } from './tools/skew-notice.js';
 import { handleTokenMap, TOKEN_MAP_TOOL_NAME } from './tools/token-map.js';
 
-const SERVER_NAME = 'rpx-wright';
+const SERVER_NAME = 'Rocket-MCP';
 const SERVER_VERSION = pkg.version;
 
 const log = (msg: string): void => {
@@ -249,7 +249,7 @@ const stdio = serveStdio(createMcpServer, {
   // Unset, serveStdio discards transport errors outright, so the one message naming the cause
   // (e.g. "ReadBuffer exceeded maximum size of 10485760 bytes") never reaches the user's stderr.
   onerror: (error: Error): void => {
-    log(`[figwright] stdio transport error: ${error.message}`);
+    log(`[rocket-mcp] stdio transport error: ${error.message}`);
   },
 });
 
@@ -259,7 +259,7 @@ const roleDetail = node.isLeader()
     ? `:${PORT} held by an unresponsive owner — contending for it`
     : `follower → ${node.leaderUrl}`;
 log(
-  `[figwright] server ${SERVER_VERSION} (protocol ${PROTOCOL_VERSION}) ready as ${node.role}, ${roleDetail}`,
+  `[rocket-mcp] server ${SERVER_VERSION} (protocol ${PROTOCOL_VERSION}) ready as ${node.role}, ${roleDetail}`,
 );
 
 const shutdown = async (): Promise<void> => {
@@ -283,7 +283,7 @@ triggerShutdown = wireShutdown({
   stdin: process.stdin,
   shutdown,
   hardExit: () => {
-    log('[figwright] graceful shutdown stalled — forcing exit');
+    log('[rocket-mcp] graceful shutdown stalled — forcing exit');
     process.exit(1);
   },
 });
