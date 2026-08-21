@@ -14,6 +14,7 @@ import { createMoveNodesHandler } from '../../src/handlers/move-nodes.js';
 import { createRenameNodeHandler } from '../../src/handlers/rename-node.js';
 import { createSetCornerRadiusHandler } from '../../src/handlers/set-corner-radius.js';
 import { createSetFillsHandler } from '../../src/handlers/set-fills.js';
+import { createSetImageFillHandler } from '../../src/handlers/set-image-fill.js';
 import { createSetOpacityHandler } from '../../src/handlers/set-opacity.js';
 import { createSetStrokesHandler } from '../../src/handlers/set-strokes.js';
 import { createSetTextPropertiesHandler } from '../../src/handlers/set-text-properties.js';
@@ -30,6 +31,13 @@ const makeFigma = (initial: Record<string, Record<string, unknown>>) => {
     mixed: Symbol('mixed'),
     currentPage,
     loadFontAsync,
+    base64Decode: vi.fn<(data: string) => Uint8Array>(() => new Uint8Array([1, 2, 3])),
+    createImage: vi.fn<
+      () => { hash: string; getSizeAsync: () => Promise<{ width: number; height: number }> }
+    >(() => ({
+      hash: 'NEW_IMAGE_HASH',
+      getSizeAsync: async () => ({ width: 100, height: 100 }),
+    })),
     getNodeByIdAsync: async (id: string) => store.get(id) ?? null,
     createFrame: () => {
       const id = `9:${(seq += 1)}`;
@@ -55,6 +63,7 @@ const realWrites = (figmaCtx: typeof figma): SandboxHandlers => ({
   rename_node: createRenameNodeHandler(figmaCtx),
   set_opacity: createSetOpacityHandler(figmaCtx),
   set_fills: createSetFillsHandler(figmaCtx),
+  set_image_fill: createSetImageFillHandler(figmaCtx),
   set_strokes: createSetStrokesHandler(figmaCtx),
   set_corner_radius: createSetCornerRadiusHandler(figmaCtx),
   set_text_properties: createSetTextPropertiesHandler(figmaCtx),
@@ -189,6 +198,26 @@ describe('batch handler', () => {
     ).rejects.toThrow(/rolled back 1/);
 
     expect(store.get('1:1')!.fills).toEqual([SOLID(0.2)]); // original fill restored
+  });
+
+  it('restores the original IMAGE fill when a later batched replacement fails', async () => {
+    const original = { type: 'IMAGE', imageHash: 'OLD_IMAGE_HASH', scaleMode: 'CROP' };
+    const { figmaCtx, store } = makeFigma({
+      '1:1': { id: '1:1', type: 'RECTANGLE', fills: [SOLID(0.2), original] },
+      '1:2': { id: '1:2', fills: [] },
+    });
+    const handler = createBatchHandler(figmaCtx, realWrites(figmaCtx));
+
+    await expect(
+      handler({
+        ops: [
+          { tool: 'set_image_fill', params: { nodeId: '1:1', data: 'cG5n' } },
+          { tool: 'set_fills', params: { nodeId: '1:2', fills: [{ type: 'GRADIENT_LINEAR' }] } },
+        ],
+      }),
+    ).rejects.toThrow(/op 1 \(set_fills\) failed, rolled back 1/);
+
+    expect(store.get('1:1')!.fills).toEqual([SOLID(0.2), original]);
   });
 
   it('reports undo failures instead of claiming a clean rollback', async () => {

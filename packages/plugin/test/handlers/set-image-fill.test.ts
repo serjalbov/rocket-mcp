@@ -105,6 +105,61 @@ describe('set_image_fill handler', () => {
     expect(result.previousImageHash).toBeNull();
   });
 
+  it('preserves every node-level property while replacing the image', async () => {
+    const node = {
+      id: '1:2',
+      type: 'RECTANGLE' as const,
+      fills: [{ type: 'IMAGE', imageHash: 'OLD_HASH', scaleMode: 'FILL' }],
+      x: 7971,
+      y: 3895,
+      width: 274,
+      height: 204,
+      rotation: 0,
+      opacity: 1,
+      cornerRadius: 12,
+      strokes: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 } }],
+      effects: [{ type: 'DROP_SHADOW', radius: 8 }],
+      constraints: { horizontal: 'MIN', vertical: 'MIN' },
+      parent: { id: 'P:1', children: ['before', '1:2', 'after'] },
+      locked: false,
+      visible: true,
+    };
+    const before = {
+      x: node.x,
+      y: node.y,
+      width: node.width,
+      height: node.height,
+      rotation: node.rotation,
+      opacity: node.opacity,
+      cornerRadius: node.cornerRadius,
+      strokes: node.strokes,
+      effects: node.effects,
+      constraints: node.constraints,
+      parent: node.parent,
+      locked: node.locked,
+      visible: node.visible,
+    };
+    const { figma: f } = makeFigma(node);
+    await createSetImageFillHandler(f)({ nodeId: '1:2', data: 'cG5n' });
+
+    expect({
+      x: node.x,
+      y: node.y,
+      width: node.width,
+      height: node.height,
+      rotation: node.rotation,
+      opacity: node.opacity,
+      cornerRadius: node.cornerRadius,
+      strokes: node.strokes,
+      effects: node.effects,
+      constraints: node.constraints,
+      parent: node.parent,
+      locked: node.locked,
+      visible: node.visible,
+    }).toEqual(before);
+    expect(node.parent.children).toEqual(['before', '1:2', 'after']);
+  });
+
   it('rejects ambiguous fill states before creating an image or changing fills', async () => {
     const cases: Array<{ fills: unknown; mode?: 'replace' | 'add'; error: RegExp }> = [
       { fills: [], error: /no IMAGE fill/ },
