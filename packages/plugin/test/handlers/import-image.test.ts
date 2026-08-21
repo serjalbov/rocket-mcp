@@ -36,7 +36,6 @@ const makeFigma = (): {
   };
   const page = { appendChild: vi.fn<(n: unknown) => void>() };
   const figmaCtx = {
-    base64Decode: (s: string) => new Uint8Array([s.length]),
     createImage: () => ({
       hash: 'HASH123',
       getSizeAsync: async () => ({ width: 200, height: 100 }),
@@ -52,10 +51,10 @@ const makeFigma = (): {
 };
 
 describe('import_image handler', () => {
-  it('decodes base64 data, sizes the rect to the image, and applies an IMAGE fill', async () => {
+  it('uses native bytes, sizes the rect to the image, and applies an IMAGE fill', async () => {
     const { figma: f, rect, page } = makeFigma();
     const result = (await createImportImageHandler(f)({
-      data: 'abc',
+      bytes: new Uint8Array([1, 2, 3]),
       name: 'Hero',
     })) as CreateResult;
 
@@ -79,8 +78,11 @@ describe('import_image handler', () => {
     expect(rect.fills).toEqual([{ type: 'IMAGE', scaleMode: 'FIT', imageHash: 'URLHASH' }]);
   });
 
-  it('throws when neither data nor url is given', async () => {
+  it('throws unless exactly one byte or URL source is given', async () => {
     const { figma: f } = makeFigma();
-    await expect(createImportImageHandler(f)({ name: 'x' })).rejects.toThrow(/data .* or url/);
+    await expect(createImportImageHandler(f)({ name: 'x' })).rejects.toThrow(/exactly one/);
+    await expect(
+      createImportImageHandler(f)({ bytes: new Uint8Array([1]), url: 'https://x/y.png' }),
+    ).rejects.toThrow(/exactly one/);
   });
 });

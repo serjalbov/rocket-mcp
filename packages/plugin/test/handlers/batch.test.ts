@@ -31,7 +31,6 @@ const makeFigma = (initial: Record<string, Record<string, unknown>>) => {
     mixed: Symbol('mixed'),
     currentPage,
     loadFontAsync,
-    base64Decode: vi.fn<(data: string) => Uint8Array>(() => new Uint8Array([1, 2, 3])),
     createImage: vi.fn<
       () => { hash: string; getSizeAsync: () => Promise<{ width: number; height: number }> }
     >(() => ({

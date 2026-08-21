@@ -43,17 +43,18 @@ describe('writeExportedPdf', () => {
   it('writes the bytes to outPath, creating missing parent dirs', async () => {
     const base = await makeDir();
     const path = join(base, 'nested', 'handoff.pdf');
-    const pdf: PdfExport = { nodeId: '0:1', base64: 'AAAA' };
+    const bytes = new Uint8Array([0, 0, 0]);
+    const pdf: PdfExport = { nodeId: '0:1', bytes };
     const result = await writeExportedPdf(path, pdf);
 
     expect(result).toEqual({ nodeId: '0:1', path });
-    expect((await readFile(path)).toString('base64')).toBe('AAAA');
+    expect(new Uint8Array(await readFile(path))).toEqual(bytes);
   });
 
-  it('returns path null without writing when base64 is null', async () => {
+  it('returns path null without writing when bytes is null', async () => {
     const dir = await makeDir();
     const path = join(dir, 'x.pdf');
-    const result = await writeExportedPdf(path, { nodeId: '9:9', base64: null });
+    const result = await writeExportedPdf(path, { nodeId: '9:9', bytes: null });
     expect(result).toEqual({ nodeId: '9:9', path: null });
     await expect(readFile(path)).rejects.toThrow(/ENOENT/);
   });
@@ -61,7 +62,11 @@ describe('writeExportedPdf', () => {
   it('passes the empty flag through (file still written)', async () => {
     const dir = await makeDir();
     const path = join(dir, 'blank.pdf');
-    const result = await writeExportedPdf(path, { nodeId: '5:5', base64: 'AAAA', empty: true });
+    const result = await writeExportedPdf(path, {
+      nodeId: '5:5',
+      bytes: new Uint8Array([0]),
+      empty: true,
+    });
     expect(result).toEqual({ nodeId: '5:5', path, empty: true });
   });
 });
@@ -73,22 +78,21 @@ describe('handleExportPdf', () => {
     let dispatched: { tool: string; args: unknown } | null = null;
     const dispatch: ToolDispatcher = async (tool, args) => {
       dispatched = { tool, args };
-      return { nodeId: '0:1', base64: 'AAAA' } satisfies PdfExport;
+      return { nodeId: '0:1', bytes: new Uint8Array([0, 0, 0]) } satisfies PdfExport;
     };
 
     const result = (await handleExportPdf(dispatch, { outPath: path })) as ExportPdfResult;
 
-    expect(dispatched).toEqual({ tool: 'export_pdf', args: { binary: true } });
+    expect(dispatched).toEqual({ tool: 'export_pdf', args: {} });
     expect(result).toEqual({ nodeId: '0:1', path });
-    expect((await readFile(path)).toString('base64')).toBe('AAAA');
+    expect(new Uint8Array(await readFile(path))).toEqual(new Uint8Array([0, 0, 0]));
   });
 
   it('writes raw bytes when the plugin answers the binary request', async () => {
     const dir = await makeDir();
     const path = join(dir, 'bin.pdf');
     const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
-    const dispatch: ToolDispatcher = async () =>
-      ({ nodeId: '0:1', base64: null, bytes }) satisfies PdfExport;
+    const dispatch: ToolDispatcher = async () => ({ nodeId: '0:1', bytes }) satisfies PdfExport;
 
     const result = (await handleExportPdf(dispatch, { outPath: path })) as ExportPdfResult;
 
@@ -101,15 +105,15 @@ describe('handleExportPdf', () => {
     let forwarded: unknown = null;
     const dispatch: ToolDispatcher = async (_tool, args) => {
       forwarded = args;
-      return { nodeId: '3:21', base64: 'AAAA' } satisfies PdfExport;
+      return { nodeId: '3:21', bytes: new Uint8Array([0]) } satisfies PdfExport;
     };
     await handleExportPdf(dispatch, { nodeId: '3:21', outPath: join(dir, 'frame.pdf') });
-    expect(forwarded).toEqual({ binary: true, nodeId: '3:21' });
+    expect(forwarded).toEqual({ nodeId: '3:21' });
   });
 
   it('rejects input missing outPath', async () => {
     const dispatch: ToolDispatcher = async () =>
-      ({ nodeId: '0:1', base64: null }) satisfies PdfExport;
+      ({ nodeId: '0:1', bytes: null }) satisfies PdfExport;
     await expect(handleExportPdf(dispatch, {})).rejects.toThrow(/outPath/);
   });
 });

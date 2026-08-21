@@ -32,7 +32,6 @@ export const exportPdfTool: ToolSpec = {
   kind: 'local',
   // Dispatches to a same-named sandbox handler; outPath stays on the server.
   serverOnlyArgs: ['outPath'],
-  injectedArgs: ['binary'],
 };
 
 export type ToolDispatcher = (toolName: string, args: unknown) => Promise<unknown>;
@@ -61,8 +60,6 @@ export const handleExportPdf = async (
 ): Promise<ExportPdfResult> => {
   const args = inputSchema.parse(rawArgs);
   const pluginArgs: Record<string, unknown> = {};
-  // These bytes go to disk, never to a model, so they ride the wire as a msgpack `bin`.
-  pluginArgs.binary = true;
   if (args.nodeId !== undefined) pluginArgs.nodeId = args.nodeId;
   const pdf = (await dispatch(EXPORT_PDF_TOOL_NAME, pluginArgs)) as PdfExport;
   return writeExportedPdf(args.outPath, pdf);

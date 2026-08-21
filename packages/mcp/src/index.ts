@@ -26,6 +26,7 @@ import { EXPORT_VIDEO_TOOL_NAME, handleExportVideo } from './tools/export-video.
 import { GET_DESIGN_CONTEXT_TOOL_NAME } from './tools/get-design-context.js';
 import { GET_SCREENSHOT_TOOL_NAME, screenshotContent } from './tools/get-screenshot.js';
 import { handleIconMap, ICON_MAP_TOOL_NAME } from './tools/icon-map.js';
+import { handleImportImage, IMPORT_IMAGE_TOOL_NAME } from './tools/import-image.js';
 import { formatPingResult, handlePing, pingTool } from './tools/ping.js';
 import { ALL_TOOL_SPECS } from './tools/registry.js';
 import { handleSaveImageFills, SAVE_IMAGE_FILLS_TOOL_NAME } from './tools/save-image-fills.js';
@@ -125,6 +126,8 @@ const SPECIAL_HANDLERS: Record<string, ToolHandler> = {
     textResult(await handleSaveImageFills(dispatch, args)),
   [SET_IMAGE_FILL_TOOL_NAME]: async args =>
     textResult(await handleSetImageFill(dispatch, args, newId())),
+  [IMPORT_IMAGE_TOOL_NAME]: async args =>
+    textResult(await handleImportImage(dispatch, args, newId())),
   [BATCH_TOOL_NAME]: async args => textResult(await handleBatch(dispatch, args, newId())),
   [EXPORT_PDF_TOOL_NAME]: async args => textResult(await handleExportPdf(dispatch, args)),
   [EXPORT_VIDEO_TOOL_NAME]: async args => textResult(await handleExportVideo(dispatch, args)),
@@ -215,12 +218,12 @@ const createMcpServer = (): McpServer => {
  * A stdio transport that reports its own death.
  *
  * The SDK closes this transport when a read fails fatally — reachably today when an inbound message
- * exceeds the 10MB read buffer, which `import_image`'s base64 `data` can do. Closing only detaches
- * the stdin listeners and pauses the stream: it emits neither 'end' nor 'close', so none of
- * wireShutdown's triggers fire. The process then survives as a leader that can no longer hear its
- * client while still holding the relay port — a follower behind it can never take over, and nothing
- * is logged. Reporting the close routes that silent dead end into the ordinary shutdown path, after
- * which the port frees and a follower is promoted on its next tick.
+ * exceeds the 10MB read buffer. Closing only detaches the stdin listeners and pauses the stream: it
+ * emits neither 'end' nor 'close', so none of wireShutdown's triggers fire. The process then
+ * survives as a leader that can no longer hear its client while still holding the relay port — a
+ * follower behind it can never take over, and nothing is logged. Reporting the close routes that
+ * silent dead end into the ordinary shutdown path, after which the port frees and a follower is
+ * promoted on its next tick.
  *
  * Overriding close() rather than onclose is deliberate: whoever owns the connection assigns onclose
  * for its own bookkeeping, so it is not ours to take.

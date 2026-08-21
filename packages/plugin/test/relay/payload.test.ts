@@ -11,10 +11,10 @@ describe('summarizePayload', () => {
     expect(p.bytes).toBe(JSON.stringify({ ok: true, nodeId: '3:21' }).length);
   });
 
-  it('elides long binary-ish strings (base64) from the preview but counts them in bytes', () => {
-    const base64 = 'A'.repeat(LONG_STRING_THRESHOLD + 5000);
-    const p = summarizePayload({ images: [{ nodeId: '1:2', base64 }] });
-    expect(p.preview).not.toContain(base64);
+  it('elides long opaque strings from the preview but counts them in bytes', () => {
+    const opaque = 'A'.repeat(LONG_STRING_THRESHOLD + 5000);
+    const p = summarizePayload({ values: [{ nodeId: '1:2', opaque }] });
+    expect(p.preview).not.toContain(opaque);
     expect(p.preview).toContain('chars elided');
     // bytes reflect the full payload that crossed to the LLM, including the elided string.
     expect(p.bytes).toBeGreaterThan(LONG_STRING_THRESHOLD);
@@ -27,7 +27,7 @@ describe('summarizePayload', () => {
     // export into a 51MB string and ~375ms of work on the thread that draws the panel.
     const bytes = new Uint8Array(64_000);
     const started = Date.now();
-    const p = summarizePayload({ images: [{ nodeId: '1:2', base64: null, bytes }] });
+    const p = summarizePayload({ images: [{ nodeId: '1:2', bytes }] });
     expect(p.preview).toContain('bytes elided');
     expect(p.preview).not.toMatch(/"0":\s*0/);
     // The preview stays proportional to the structure, not to the payload's byte count.

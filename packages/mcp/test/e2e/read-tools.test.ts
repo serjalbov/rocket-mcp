@@ -525,11 +525,11 @@ describe('e2e get_design_context', () => {
 });
 
 describe('e2e get_screenshot', () => {
-  it('round-trips nodeIds and returns base64 images', async () => {
+  it('round-trips nodeIds and returns native image bytes', async () => {
     const h = await startLeader();
     harnesses.push(h);
     const response: GetScreenshotResult = {
-      images: [{ nodeId: '1:1', format: 'PNG', base64: 'AAAA' }],
+      images: [{ nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([0, 0, 0]) }],
     };
     sockets.push(
       await connectFakePlugin({
@@ -547,7 +547,7 @@ describe('e2e get_screenshot', () => {
       GET_SCREENSHOT_TOOL_NAME,
       { nodeIds: ['1:1'] },
     )) as GetScreenshotResult;
-    expect(result.images[0]?.base64).toBe('AAAA');
+    expect(Array.from(result.images[0]?.bytes ?? [])).toEqual([0, 0, 0]);
   });
 });
 
@@ -558,7 +558,7 @@ describe('e2e save_screenshots', () => {
     const dir = await mkdtemp(join(tmpdir(), 'e2e-save-screenshots-'));
     try {
       const response: GetScreenshotResult = {
-        images: [{ nodeId: '1:1', format: 'PNG', base64: 'AAAA' }],
+        images: [{ nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([0, 0, 0]) }],
       };
       sockets.push(
         await connectFakePlugin({
@@ -579,7 +579,7 @@ describe('e2e save_screenshots', () => {
 
       const written = result.saved[0]?.path;
       expect(written).toBe(join(dir, '1-1.png'));
-      expect((await readFile(written as string)).toString('base64')).toBe('AAAA');
+      expect(new Uint8Array(await readFile(written as string))).toEqual(new Uint8Array([0, 0, 0]));
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

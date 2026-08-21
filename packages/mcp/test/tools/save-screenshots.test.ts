@@ -56,8 +56,8 @@ describe('writeScreenshots', () => {
     const base = await makeDir();
     const dir = join(base, 'nested', 'shots');
     const images: ScreenshotImage[] = [
-      { nodeId: '1:1', format: 'PNG', base64: 'AAAA' },
-      { nodeId: '2:3', format: 'SVG', base64: 'BBBB' },
+      { nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([0, 0, 0]) },
+      { nodeId: '2:3', format: 'SVG', bytes: new Uint8Array([4, 16, 65]) },
     ];
     const result = await writeScreenshots(dir, images);
 
@@ -65,13 +65,15 @@ describe('writeScreenshots', () => {
       { nodeId: '1:1', format: 'PNG', path: join(dir, '1-1.png') },
       { nodeId: '2:3', format: 'SVG', path: join(dir, '2-3.svg') },
     ]);
-    expect((await readFile(join(dir, '1-1.png'))).toString('base64')).toBe('AAAA');
-    expect((await readFile(join(dir, '2-3.svg'))).toString('base64')).toBe('BBBB');
+    expect(new Uint8Array(await readFile(join(dir, '1-1.png')))).toEqual(new Uint8Array([0, 0, 0]));
+    expect(new Uint8Array(await readFile(join(dir, '2-3.svg')))).toEqual(
+      new Uint8Array([4, 16, 65]),
+    );
   });
 
   it('returns path null for non-exportable nodes without writing', async () => {
     const dir = await makeDir();
-    const result = await writeScreenshots(dir, [{ nodeId: '9:9', format: 'PNG', base64: null }]);
+    const result = await writeScreenshots(dir, [{ nodeId: '9:9', format: 'PNG', bytes: null }]);
     expect(result.saved).toEqual([{ nodeId: '9:9', format: 'PNG', path: null }]);
     await expect(readFile(join(dir, '9-9.png'))).rejects.toThrow(/ENOENT/);
   });
@@ -79,7 +81,7 @@ describe('writeScreenshots', () => {
   it('passes the empty flag through (file still written, but flagged blank)', async () => {
     const dir = await makeDir();
     const result = await writeScreenshots(dir, [
-      { nodeId: '1:1', format: 'PNG', base64: 'AAAA', empty: true },
+      { nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([0]), empty: true },
     ]);
     expect(result.saved).toEqual([
       { nodeId: '1:1', format: 'PNG', path: join(dir, '1-1.png'), empty: true },
@@ -94,7 +96,7 @@ describe('handleSaveScreenshots', () => {
     const dispatch: ToolDispatcher = async (tool, args) => {
       dispatched = { tool, args };
       return {
-        images: [{ nodeId: '1:1', format: 'PNG', base64: 'AAAA' }],
+        images: [{ nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([0, 0, 0]) }],
       } satisfies GetScreenshotResult;
     };
 
@@ -107,10 +109,10 @@ describe('handleSaveScreenshots', () => {
     // the raster for model consumption, but files on disk are user artifacts and stay full-res.
     expect(dispatched).toEqual({
       tool: 'get_screenshot',
-      args: { binary: true, nodeIds: ['1:1'], scale: 1 },
+      args: { nodeIds: ['1:1'], scale: 1 },
     });
     expect(result.saved[0]).toEqual({ nodeId: '1:1', format: 'PNG', path: join(dir, '1-1.png') });
-    expect((await readFile(join(dir, '1-1.png'))).toString('base64')).toBe('AAAA');
+    expect(new Uint8Array(await readFile(join(dir, '1-1.png')))).toEqual(new Uint8Array([0, 0, 0]));
   });
 
   it('lands raw bytes when the plugin answers the binary request', async () => {
@@ -118,7 +120,7 @@ describe('handleSaveScreenshots', () => {
     const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d]);
     const dispatch: ToolDispatcher = async () =>
       ({
-        images: [{ nodeId: '1:1', format: 'PNG', base64: null, bytes }],
+        images: [{ nodeId: '1:1', format: 'PNG', bytes }],
       }) satisfies GetScreenshotResult;
 
     const result = (await handleSaveScreenshots(dispatch, {
@@ -143,7 +145,7 @@ describe('handleSaveScreenshots', () => {
       format: 'JPG',
       scale: 2,
     });
-    expect(forwarded).toEqual({ binary: true, nodeIds: ['1:1'], format: 'JPG', scale: 2 });
+    expect(forwarded).toEqual({ nodeIds: ['1:1'], format: 'JPG', scale: 2 });
   });
 
   it('rejects input missing outDir', async () => {

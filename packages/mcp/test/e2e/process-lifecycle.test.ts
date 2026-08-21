@@ -167,8 +167,8 @@ describe.skipIf(!existsSync(DIST_ENTRY))('process lifecycle (built dist)', () =>
     { timeout: 20_000 },
     async () => {
       // The third way to lose the client, and the one nothing covered. A read that fails fatally —
-      // reachable today because import_image carries base64 bytes as an *input* — makes the SDK
-      // close the transport. Closing detaches the stdin listeners and pauses the stream without
+      // A malformed or oversized client message makes the SDK close the transport. Closing
+      // detaches the stdin listeners and pauses the stream without
       // ending it, so no 'end'/'close' fires and the process survives as a leader that can no
       // longer hear anyone, still holding the relay port. Before this was wired, a follower waited
       // behind it forever and the user had to kill the process by hand.

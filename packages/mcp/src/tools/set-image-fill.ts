@@ -54,31 +54,34 @@ export interface LocalImagePayload {
 }
 
 /** Read and validate the local image before any request reaches Figma. */
-export const readLocalImage = async (filePath: string): Promise<LocalImagePayload> => {
+export const readLocalImage = async (
+  filePath: string,
+  operation = SET_IMAGE_FILL_TOOL_NAME,
+): Promise<LocalImagePayload> => {
   if (!isAbsolute(filePath)) {
-    throw new TypeError('set_image_fill: filePath must be an absolute path');
+    throw new TypeError(`${operation}: filePath must be an absolute path`);
   }
   const absolutePath = resolve(filePath);
   const info = await stat(absolutePath).catch(() => null);
   if (info === null || !info.isFile()) {
-    throw new Error(`set_image_fill: file not found or not a regular file: ${absolutePath}`);
+    throw new Error(`${operation}: file not found or not a regular file: ${absolutePath}`);
   }
-  if (info.size === 0) throw new Error('set_image_fill: image file is empty');
+  if (info.size === 0) throw new Error(`${operation}: image file is empty`);
   if (info.size > MAX_IMAGE_BYTES) {
     throw new Error(
-      `set_image_fill: image is ${info.size} bytes; maximum is ${MAX_IMAGE_BYTES} bytes (2 MiB)`,
+      `${operation}: image is ${info.size} bytes; maximum is ${MAX_IMAGE_BYTES} bytes (2 MiB)`,
     );
   }
 
   const bytes = await readFile(absolutePath);
   if (bytes.length > MAX_IMAGE_BYTES) {
     throw new Error(
-      `set_image_fill: image is ${bytes.length} bytes; maximum is ${MAX_IMAGE_BYTES} bytes (2 MiB)`,
+      `${operation}: image is ${bytes.length} bytes; maximum is ${MAX_IMAGE_BYTES} bytes (2 MiB)`,
     );
   }
   const detected = detectImageFormat(bytes).format;
   if (detected !== 'PNG' && detected !== 'JPG' && detected !== 'GIF') {
-    throw new TypeError('set_image_fill: unsupported image format; use PNG, JPG, or GIF');
+    throw new TypeError(`${operation}: unsupported image format; use PNG, JPG, or GIF`);
   }
   return { absolutePath, bytes, format: detected };
 };

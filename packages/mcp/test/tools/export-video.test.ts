@@ -47,20 +47,21 @@ describe('writeExportedVideo', () => {
   it('writes the bytes to outPath, creating missing parent dirs', async () => {
     const base = await makeDir();
     const path = join(base, 'nested', 'clip.mp4');
-    const video: VideoExport = { nodeId: '2:3', format: 'MP4', base64: 'AAAA' };
+    const bytes = new Uint8Array([0, 0, 0]);
+    const video: VideoExport = { nodeId: '2:3', format: 'MP4', bytes };
     const result = await writeExportedVideo(path, video);
 
     expect(result).toEqual({ nodeId: '2:3', format: 'MP4', path });
-    expect((await readFile(path)).toString('base64')).toBe('AAAA');
+    expect(new Uint8Array(await readFile(path))).toEqual(bytes);
   });
 
-  it('returns path null with the reason and writes nothing when base64 is null', async () => {
+  it('returns path null with the reason and writes nothing when bytes is null', async () => {
     const dir = await makeDir();
     const path = join(dir, 'x.gif');
     const result = await writeExportedVideo(path, {
       nodeId: '9:9',
       format: 'GIF',
-      base64: null,
+      bytes: null,
       reason: 'no-top-level-frame',
     });
     expect(result).toEqual({
@@ -78,7 +79,7 @@ describe('writeExportedVideo', () => {
     const result = await writeExportedVideo(path, {
       nodeId: '4:4',
       format: 'MP4',
-      base64: null,
+      bytes: null,
       reason: 'failed',
       error: 'The frame has no animation to export',
     });
@@ -100,7 +101,11 @@ describe('handleExportVideo', () => {
     let dispatched: { tool: string; args: unknown } | null = null;
     const dispatch: ToolDispatcher = async (tool, args) => {
       dispatched = { tool, args };
-      return { nodeId: '5:5', format: 'MP4', base64: 'AAAA' } satisfies VideoExport;
+      return {
+        nodeId: '5:5',
+        format: 'MP4',
+        bytes: new Uint8Array([0, 0, 0]),
+      } satisfies VideoExport;
     };
 
     const result = (await handleExportVideo(dispatch, {
@@ -111,10 +116,10 @@ describe('handleExportVideo', () => {
 
     expect(dispatched).toEqual({
       tool: 'export_video',
-      args: { binary: true, nodeId: '5:5', format: 'MP4' },
+      args: { nodeId: '5:5', format: 'MP4' },
     });
     expect(result).toEqual({ nodeId: '5:5', format: 'MP4', path });
-    expect((await readFile(path)).toString('base64')).toBe('AAAA');
+    expect(new Uint8Array(await readFile(path))).toEqual(new Uint8Array([0, 0, 0]));
   });
 
   it('writes raw bytes when the plugin answers the binary request', async () => {
@@ -122,7 +127,7 @@ describe('handleExportVideo', () => {
     const path = join(dir, 'bin.mp4');
     const bytes = new Uint8Array([0x00, 0x00, 0x00, 0x18]);
     const dispatch: ToolDispatcher = async () =>
-      ({ nodeId: '5:5', format: 'MP4', base64: null, bytes }) satisfies VideoExport;
+      ({ nodeId: '5:5', format: 'MP4', bytes }) satisfies VideoExport;
 
     const result = (await handleExportVideo(dispatch, {
       nodeId: '5:5',
@@ -139,7 +144,11 @@ describe('handleExportVideo', () => {
     let forwarded: unknown = null;
     const dispatch: ToolDispatcher = async (_tool, args) => {
       forwarded = args;
-      return { nodeId: '3:21', format: 'WEBM', base64: 'AAAA' } satisfies VideoExport;
+      return {
+        nodeId: '3:21',
+        format: 'WEBM',
+        bytes: new Uint8Array([0]),
+      } satisfies VideoExport;
     };
     await handleExportVideo(dispatch, {
       nodeId: '3:21',
@@ -150,7 +159,6 @@ describe('handleExportVideo', () => {
       outPath: join(dir, 'frame.webm'),
     });
     expect(forwarded).toEqual({
-      binary: true,
       nodeId: '3:21',
       format: 'WEBM',
       fps: 30,
@@ -161,7 +169,7 @@ describe('handleExportVideo', () => {
 
   it('rejects input missing outPath', async () => {
     const dispatch: ToolDispatcher = async () =>
-      ({ nodeId: '0:1', format: 'MP4', base64: null }) satisfies VideoExport;
+      ({ nodeId: '0:1', format: 'MP4', bytes: null }) satisfies VideoExport;
     await expect(handleExportVideo(dispatch, { nodeId: '0:1', format: 'MP4' })).rejects.toThrow(
       /outPath/,
     );

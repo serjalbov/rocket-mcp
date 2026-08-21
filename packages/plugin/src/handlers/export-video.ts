@@ -25,12 +25,12 @@ const buildVideoSettings = (
 };
 
 /**
- * Export an animated top-level frame to MP4 / GIF / WebM bytes (base64). We resolve the node's
- * enclosing top-level frame (video export rejects on any other node) and gate on the Figma Design
- * editor. exportAsync rejects for several reasons — a static frame with no animation, an
- * unsupported setting, or a render that raced another plugin call — so instead of collapsing them
- * into one guessed label we surface Figma's own message in `error`. Read-only: exporting doesn't
- * mutate the document.
+ * Export an animated top-level frame to MP4 / GIF / WebM bytes. We resolve the node's enclosing
+ * top-level frame (video export rejects on any other node) and gate on the Figma Design editor.
+ * exportAsync rejects for several reasons — a static frame with no animation, an unsupported
+ * setting, or a render that raced another plugin call — so instead of collapsing them into one
+ * guessed label we surface Figma's own message in `error`. Read-only: exporting doesn't mutate the
+ * document.
  */
 export const createExportVideoHandler =
   (figmaCtx: typeof figma): SandboxToolHandler =>
@@ -42,7 +42,6 @@ export const createExportVideoHandler =
       quality?: unknown;
       loopCount?: unknown;
       constraint?: unknown;
-      binary?: unknown;
     };
     if (typeof p.nodeId !== 'string') throw new TypeError('export_video: nodeId must be a string');
     if (p.format !== 'MP4' && p.format !== 'GIF' && p.format !== 'WEBM') {
@@ -52,7 +51,7 @@ export const createExportVideoHandler =
     const miss = (nodeId: string, reason: VideoExport['reason'], error?: string): VideoExport => ({
       nodeId,
       format,
-      base64: null,
+      bytes: null,
       reason,
       ...(error !== undefined ? { error } : {}),
     });
@@ -68,10 +67,7 @@ export const createExportVideoHandler =
 
     try {
       const bytes = await frame.exportAsync(buildVideoSettings(format, p));
-      // See get_screenshot: `binary` means the server lands these bytes on disk, so they skip base64.
-      return p.binary === true
-        ? { nodeId: frame.id, format, base64: null, bytes }
-        : { nodeId: frame.id, format, base64: figmaCtx.base64Encode(bytes) };
+      return { nodeId: frame.id, format, bytes };
     } catch (err) {
       // exportAsync rejects for a static (no-animation) frame, a bad setting, or a raced render —
       // carry Figma's real message rather than guessing a single cause.

@@ -2,7 +2,7 @@
 // reproduced: versions + the connected context + the ordered sequence of tool calls, each with its
 // request params and the result (or error) it produced. Pure + testable; the UI just feeds it state.
 //
-// Payloads are the same elided/capped snapshots the Activity inspector shows (base64 images are
+// Payloads are the same elided/capped snapshots the Activity inspector shows (large opaque values are
 // elided, huge trees capped). The bundle therefore contains the user's design content + file/page
 // names — the caller surfaces that before copying.
 

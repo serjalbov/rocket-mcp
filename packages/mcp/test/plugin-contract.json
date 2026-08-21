@@ -23,11 +23,10 @@
     "get_node_motion": ["nodeId"],
     "list_files": [],
     "get_design_context": ["budget", "dedupeComponents", "depth", "detail", "nodeId"],
-    "get_screenshot": ["binary", "forVision", "format", "nodeIds", "scale"],
-    "save_image_fills": ["binary", "nodeIds"],
-    "export_pdf": ["binary", "nodeId"],
+    "get_screenshot": ["forVision", "format", "nodeIds", "scale"],
+    "save_image_fills": ["nodeIds"],
+    "export_pdf": ["nodeId"],
     "export_video": [
-      "binary",
       "constraint",
       "constraint.type",
       "constraint.value",
@@ -462,7 +461,7 @@
     "delete_component_property": ["componentId", "propertyId", "requestId"],
     "detach_instance": ["instanceId", "requestId"],
     "import_image": [
-      "data",
+      "bytes",
       "height",
       "name",
       "parentId",

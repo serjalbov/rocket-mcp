@@ -40,7 +40,6 @@ export const saveImageFillsTool: ToolSpec = {
   kind: 'local',
   // Dispatches to a same-named sandbox handler; outDir stays on the server.
   serverOnlyArgs: ['outDir'],
-  injectedArgs: ['binary'],
 };
 
 /**
@@ -132,8 +131,6 @@ export const handleSaveImageFills = async (
 ): Promise<SaveImageFillsResult> => {
   const args = inputSchema.parse(rawArgs);
   const { nodes } = (await dispatch(SAVE_IMAGE_FILLS_TOOL_NAME, {
-    // These bytes go to disk, never to a model, so they ride the wire as a msgpack `bin`.
-    binary: true,
     nodeIds: args.nodeIds,
   })) as ImageFillsResult;
   return writeImageFills(args.outDir, nodes);

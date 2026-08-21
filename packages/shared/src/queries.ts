@@ -25,24 +25,15 @@ export type ListFilesResult = z.infer<typeof ListFilesResultSchema>;
 export const SCREENSHOT_FORMATS = ['PNG', 'JPG', 'SVG'] as const;
 export type ScreenshotFormat = (typeof SCREENSHOT_FORMATS)[number];
 
-/**
- * Raw export bytes, carried in place of `base64` on the paths that land on disk. msgpack encodes a
- * Uint8Array as a native `bin`, so base64's 33% inflation buys nothing here — the server used to
- * decode straight back to bytes anyway, making it a pure round trip.
- *
- * Both fields exist because the server asks for bytes with a `binary: true` request flag that a
- * plugin predating this simply drops, answering with `base64` as before. So every consumer reads
- * the payload as "`bytes`, else `base64`" (see `binaryPayload` server-side); neither present means
- * nothing was exported.
- */
+/** Raw export bytes. MessagePack carries Uint8Array as a native `bin` value. */
 // Typed against ArrayBufferLike rather than z.instanceof's ArrayBuffer: Figma's exportAsync and
 // getBytesAsync both hand back Uint8Array<ArrayBufferLike>.
 export const ExportBytesSchema = z
   .custom<Uint8Array<ArrayBufferLike>>(value => value instanceof Uint8Array)
-  .optional();
+  .nullable();
 
 /**
- * Per-node export; base64 is null when the node is missing or not exportable.
+ * Per-node export; bytes is null when the node is missing or not exportable.
  *
  * A node that renders nothing in place (absoluteRenderBounds === null — fully clipped / off-canvas,
  * as in a carousel, mask, or off-screen state) is automatically re-exported at its own bounding box
@@ -54,7 +45,7 @@ export const ExportBytesSchema = z
 export const ScreenshotImageSchema = z.object({
   nodeId: z.string(),
   format: z.string(),
-  base64: z.string().nullable(),
+  bytes: ExportBytesSchema,
   empty: z.boolean().optional(),
   recovered: z.boolean().optional(),
   /**
@@ -66,7 +57,6 @@ export const ScreenshotImageSchema = z.object({
   width: z.number().optional(),
   height: z.number().optional(),
   scale: z.number().optional(),
-  bytes: ExportBytesSchema,
 });
 export type ScreenshotImage = z.infer<typeof ScreenshotImageSchema>;
 
@@ -95,15 +85,14 @@ export type SaveScreenshotsResult = z.infer<typeof SaveScreenshotsResultSchema>;
 /**
  * Plugin-side PDF export — one PDF page per node. The plugin `exportAsync` API renders a node (or a
  * whole page) as a single page; it can't paginate a page into one-frame-per-page (a Figma UI-only
- * feature) or combine nodes. base64 is null when the target is missing or not exportable; `empty`
- * is set when the node rendered nothing (absoluteRenderBounds === null); a PAGE has no such
- * property so it's never flagged empty.
+ * feature) or combine nodes. bytes is null when the target is missing or not exportable; `empty` is
+ * set when the node rendered nothing (absoluteRenderBounds === null); a PAGE has no such property
+ * so it's never flagged empty. bytes is null when nothing was exported.
  */
 export const PdfExportSchema = z.object({
   nodeId: z.string(),
-  base64: z.string().nullable(),
-  empty: z.boolean().optional(),
   bytes: ExportBytesSchema,
+  empty: z.boolean().optional(),
 });
 export type PdfExport = z.infer<typeof PdfExportSchema>;
 
@@ -134,15 +123,14 @@ export const VIDEO_EXPORT_MISS_REASONS = [
 ] as const;
 export type VideoExportMissReason = (typeof VIDEO_EXPORT_MISS_REASONS)[number];
 
-/** Plugin-side video export: base64 bytes of the encoded frame, or null + a reason when it couldn't. */
+/** Plugin-side video export: encoded frame bytes, or null + a reason when it couldn't. */
 export const VideoExportSchema = z.object({
   nodeId: z.string(),
   format: z.enum(VIDEO_FORMATS),
-  base64: z.string().nullable(),
+  bytes: ExportBytesSchema,
   reason: z.enum(VIDEO_EXPORT_MISS_REASONS).optional(),
   /** Figma's own rejection message, present when reason is `failed`. */
   error: z.string().optional(),
-  bytes: ExportBytesSchema,
 });
 export type VideoExport = z.infer<typeof VideoExportSchema>;
 
@@ -161,17 +149,16 @@ export type ExportVideoResult = z.infer<typeof ExportVideoResultSchema>;
  * One IMAGE fill's ORIGINAL bytes, as uploaded — no mask, clip, crop, scale, or effects applied
  * (unlike get_screenshot / save_screenshots, which re-render the composited node). `index` is the
  * paint's position in node.fills; `imageHash` identifies the shared asset (the same hash reused
- * across nodes points at one file). `base64` is null when the hash can't be resolved to an image.
+ * across nodes points at one file). `bytes` is null when the hash can't be resolved to an image.
  * `width`/`height` are the image's intrinsic pixel size; `scaleMode` is how the fill is displayed.
  */
 export const ImageFillBytesSchema = z.object({
   index: z.number(),
   imageHash: z.string().nullable(),
-  base64: z.string().nullable(),
+  bytes: ExportBytesSchema,
   width: z.number().optional(),
   height: z.number().optional(),
   scaleMode: z.string().optional(),
-  bytes: ExportBytesSchema,
 });
 export type ImageFillBytes = z.infer<typeof ImageFillBytesSchema>;
 

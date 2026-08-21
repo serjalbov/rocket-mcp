@@ -17,10 +17,8 @@ import { toToolDefinition } from '../tool-schema.js';
 
 const saveImageFillsToolDefinition = toToolDefinition(saveImageFillsTool);
 
-// Minimal magic-byte payloads, base64-encoded the way the plugin ships them over the wire.
-const b64 = (bytes: number[]): string => Buffer.from(bytes).toString('base64');
-const PNG_B64 = b64([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const JPG_B64 = b64([0xff, 0xd8, 0xff, 0xe0, 0x00]);
+const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const JPG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00]);
 
 const emptyDispatch: ToolDispatcher = async () => ({ nodes: [] }) satisfies ImageFillsResult;
 
@@ -88,12 +86,12 @@ describe('writeImageFills', () => {
           {
             index: 0,
             imageHash: 'abcHASH',
-            base64: PNG_B64,
+            bytes: PNG_BYTES,
             width: 200,
             height: 100,
             scaleMode: 'FILL',
           },
-          { index: 2, imageHash: 'jpgHASH', base64: JPG_B64, scaleMode: 'CROP' },
+          { index: 2, imageHash: 'jpgHASH', bytes: JPG_BYTES, scaleMode: 'CROP' },
         ],
       },
     ];
@@ -124,8 +122,8 @@ describe('writeImageFills', () => {
         },
       ],
     } satisfies SaveImageFillsResult);
-    expect((await readFile(join(dir, 'abcHASH.png'))).toString('base64')).toBe(PNG_B64);
-    expect((await readFile(join(dir, 'jpgHASH.jpg'))).toString('base64')).toBe(JPG_B64);
+    expect(new Uint8Array(await readFile(join(dir, 'abcHASH.png')))).toEqual(PNG_BYTES);
+    expect(new Uint8Array(await readFile(join(dir, 'jpgHASH.jpg')))).toEqual(JPG_BYTES);
   });
 
   it('dedupes a shared imageHash to one file while every usage still maps to it', async () => {
@@ -133,25 +131,25 @@ describe('writeImageFills', () => {
     const nodes: NodeImageFills[] = [
       {
         nodeId: '1:1',
-        images: [{ index: 0, imageHash: 'logo', base64: PNG_B64, scaleMode: 'FILL' }],
+        images: [{ index: 0, imageHash: 'logo', bytes: PNG_BYTES, scaleMode: 'FILL' }],
       },
       {
         nodeId: '2:2',
-        images: [{ index: 0, imageHash: 'logo', base64: PNG_B64, scaleMode: 'FIT' }],
+        images: [{ index: 0, imageHash: 'logo', bytes: PNG_BYTES, scaleMode: 'FIT' }],
       },
     ];
     const result = await writeImageFills(dir, nodes);
     const shared = join(dir, 'logo.png');
     expect(result.nodes[0]?.images[0]?.path).toBe(shared);
     expect(result.nodes[1]?.images[0]?.path).toBe(shared);
-    expect((await readFile(shared)).toString('base64')).toBe(PNG_B64);
+    expect(new Uint8Array(await readFile(shared))).toEqual(PNG_BYTES);
   });
 
   it('returns path null (no write) for an unresolved image and passes mixed through', async () => {
     const dir = await makeDir();
     const nodes: NodeImageFills[] = [
-      { nodeId: '1:1', images: [{ index: 0, imageHash: 'gone', base64: null, scaleMode: 'FILL' }] },
-      { nodeId: '2:2', images: [{ index: 1, imageHash: null, base64: null }] },
+      { nodeId: '1:1', images: [{ index: 0, imageHash: 'gone', bytes: null, scaleMode: 'FILL' }] },
+      { nodeId: '2:2', images: [{ index: 1, imageHash: null, bytes: null }] },
       { nodeId: '3:3', images: [], mixed: true },
     ];
     const result = await writeImageFills(dir, nodes);
@@ -174,7 +172,7 @@ describe('handleSaveImageFills', () => {
     const dispatch: ToolDispatcher = async (tool, args) => {
       dispatched = { tool, args };
       return {
-        nodes: [{ nodeId: '1:1', images: [{ index: 0, imageHash: 'h', base64: PNG_B64 }] }],
+        nodes: [{ nodeId: '1:1', images: [{ index: 0, imageHash: 'h', bytes: PNG_BYTES }] }],
       } satisfies ImageFillsResult;
     };
 
@@ -185,7 +183,7 @@ describe('handleSaveImageFills', () => {
 
     expect(dispatched).toEqual({
       tool: 'save_image_fills',
-      args: { binary: true, nodeIds: ['1:1'] },
+      args: { nodeIds: ['1:1'] },
     });
     expect(result.nodes[0]?.images[0]).toEqual({
       index: 0,
@@ -193,7 +191,7 @@ describe('handleSaveImageFills', () => {
       format: 'PNG',
       path: join(dir, 'h.png'),
     });
-    expect((await readFile(join(dir, 'h.png'))).toString('base64')).toBe(PNG_B64);
+    expect(new Uint8Array(await readFile(join(dir, 'h.png')))).toEqual(PNG_BYTES);
   });
 
   it('lands raw bytes when the plugin answers the binary request', async () => {
@@ -201,7 +199,7 @@ describe('handleSaveImageFills', () => {
     const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const dispatch: ToolDispatcher = async () =>
       ({
-        nodes: [{ nodeId: '1:1', images: [{ index: 0, imageHash: 'h', base64: null, bytes }] }],
+        nodes: [{ nodeId: '1:1', images: [{ index: 0, imageHash: 'h', bytes }] }],
       }) satisfies ImageFillsResult;
 
     const result = (await handleSaveImageFills(dispatch, {

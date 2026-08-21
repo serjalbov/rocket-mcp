@@ -23,8 +23,7 @@ interface ClipGeometry {
 }
 
 // The long edge a vision model resolves. Past it the raster is downscaled on arrival, so the model
-// sees the exact same pixels while we pay the payload and the image tokens — a 1440×5056 frame at 4x
-// ships 21.5MB of base64 to be seen at 735×2579, identical to 0.51x.
+// sees the exact same pixels while we pay the payload and the image tokens.
 //
 // We can't pick this per client — MCP `initialize` carries a client *name*, and any client can be
 // pointed at any model — so it has to hold for all of them at once. Per vendor docs: Claude 4.7+
@@ -65,8 +64,7 @@ const autoFitScale = (box: { width: number; height: number }, ceiling: number): 
 /**
  * Cap an explicit scale to what the model can actually resolve. Everything past the ceiling is
  * downscaled on arrival, so the extra pixels buy no fidelity — they only inflate the payload (a
- * single image also has a hard per-request byte limit: 10MB base64 on the Claude API, 5MB on
- * Bedrock/Vertex) and the image-token bill.
+ * single image also has a hard per-request byte limit) and the image-token bill.
  */
 const capScaleForVision = (
   box: { width: number; height: number },
@@ -119,7 +117,6 @@ export const createGetScreenshotHandler =
       format?: unknown;
       scale?: unknown;
       forVision?: unknown;
-      binary?: unknown;
     };
     if (
       !Array.isArray(p.nodeIds) ||
@@ -145,14 +142,11 @@ export const createGetScreenshotHandler =
     // save_screenshots leaves it off: those bytes go to disk, never to a model, so the caller's
     // scale is kept exactly and files stay full-res.
     const forVision = p.forVision === true;
-    // Set by the tools that land the raster on disk. Those bytes never enter a model's context, so
-    // they skip base64 entirely and ride the wire as a msgpack `bin`. An older server never sends
-    // the flag and keeps getting base64, which is why both branches exist.
-    const binary = p.binary === true;
-    const exported = (nodeId: string, bytes: Uint8Array): ScreenshotImage =>
-      binary
-        ? { nodeId, format, base64: null, bytes }
-        : { nodeId, format, base64: figmaCtx.base64Encode(bytes) };
+    const exported = (nodeId: string, bytes: Uint8Array): ScreenshotImage => ({
+      nodeId,
+      format,
+      bytes,
+    });
     // useAbsoluteBounds renders the node at its own bounding box instead of its (clipped) render
     // region — see the recovery path below. We only ever turn it on for that recovery.
     const makeSettings = (useAbsoluteBounds: boolean, scale: number): ExportSettings =>
@@ -173,7 +167,7 @@ export const createGetScreenshotHandler =
     const images: ScreenshotImage[] = await Promise.all(
       ids.map(async (nodeId): Promise<ScreenshotImage> => {
         const node = await figmaCtx.getNodeByIdAsync(nodeId);
-        if (node === null || !isExportable(node)) return { nodeId, format, base64: null };
+        if (node === null || !isExportable(node)) return { nodeId, format, bytes: null };
 
         const geom = node as unknown as ClipGeometry;
 

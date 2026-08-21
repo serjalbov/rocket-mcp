@@ -51,7 +51,6 @@ export const exportVideoTool: ToolSpec = {
   kind: 'local',
   // Dispatches to a same-named sandbox handler; outPath stays on the server.
   serverOnlyArgs: ['outPath'],
-  injectedArgs: ['binary'],
 };
 
 export type ToolDispatcher = (toolName: string, args: unknown) => Promise<unknown>;
@@ -85,10 +84,6 @@ export const handleExportVideo = async (
   rawArgs: unknown,
 ): Promise<ExportVideoResult> => {
   const { outPath, ...pluginArgs } = inputSchema.parse(rawArgs);
-  const video = (await dispatch(EXPORT_VIDEO_TOOL_NAME, {
-    // These bytes go to disk, never to a model, so they ride the wire as a msgpack `bin`.
-    binary: true,
-    ...pluginArgs,
-  })) as VideoExport;
+  const video = (await dispatch(EXPORT_VIDEO_TOOL_NAME, pluginArgs)) as VideoExport;
   return writeExportedVideo(outPath, video);
 };

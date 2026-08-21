@@ -56,6 +56,19 @@ describe('createToolBridge', () => {
     expect(bridge.pendingCount()).toBe(0);
   });
 
+  it('preserves native image bytes in a tool-call payload', async () => {
+    const { bridge, sent, emit } = setup();
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3]);
+    const promise = bridge.handler('set_image_fill', { nodeId: '1:2', bytes });
+    expect(sent[0]).toMatchObject({
+      kind: 'tool-call',
+      method: 'set_image_fill',
+      params: { nodeId: '1:2', bytes },
+    });
+    emit(createToolResult({ id: sent[0]!.id, result: { ok: true } }));
+    await expect(promise).resolves.toEqual({ ok: true });
+  });
+
   it('rejects when sandbox replies with tool-error', async () => {
     const { bridge, sent, emit } = setup();
     const promise = bridge.handler('ping', undefined);

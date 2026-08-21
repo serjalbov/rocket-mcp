@@ -187,8 +187,9 @@ describe('plugin argument contract', () => {
         tool: spec.name,
         missing: [],
       });
-      // Vacuous if the scan found nothing — every one of these hand-builds a payload.
-      expect(seen.length).toBeGreaterThan(0);
+      // A handler-owning local tool may now dispatch only its schema fields after stripping the
+      // server path. When it injects extra fields, however, the scan must see at least one site.
+      expect(seen.length > 0 || (spec.injectedArgs ?? []).length === 0).toBe(true);
     }
   });
 

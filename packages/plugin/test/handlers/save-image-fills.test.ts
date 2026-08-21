@@ -17,7 +17,6 @@ const makeFigma = (
 ): typeof figma =>
   ({
     mixed: MIXED,
-    base64Encode: (bytes: Uint8Array) => `b64(${bytes.length})`,
     getNodeByIdAsync: async (id: string) => (nodes[id] ?? null) as BaseNode | null,
     getImageByHash: (hash: string) => {
       const img = images[hash];
@@ -58,49 +57,48 @@ describe('save_image_fills handler', () => {
           {
             index: 1,
             imageHash: 'h1',
-            base64: 'b64(3)',
+            bytes: new Uint8Array([1, 2, 3]),
             width: 200,
             height: 100,
             scaleMode: 'CROP',
           },
-          { index: 2, imageHash: 'h2', base64: 'b64(3)', width: 64, height: 64, scaleMode: 'FIT' },
+          {
+            index: 2,
+            imageHash: 'h2',
+            bytes: new Uint8Array([1, 2, 3]),
+            width: 64,
+            height: 64,
+            scaleMode: 'FIT',
+          },
         ],
       },
     ]);
   });
 
-  it('encodes a shared imageHash once, not once per usage', async () => {
-    // The memo holds the finished payload, not the raw bytes: a logo reused across nodes must cost
-    // one base64Encode. Encoding per usage would be invisible in the result and quadratic in fills.
-    const encode = vi.fn<(bytes: Uint8Array) => string>(bytes => `b64(${bytes.length})`);
+  it('fetches a shared imageHash once, not once per usage', async () => {
     const getBytes = vi.fn<() => Promise<Uint8Array>>(async () => new Uint8Array([1, 2, 3]));
-    const f = {
-      ...makeFigma(
-        {
-          '1:1': { fills: [imagePaint('logo'), imagePaint('logo')] },
-          '2:2': { fills: [imagePaint('logo')] },
-        },
-        { logo: { getBytesAsync: getBytes, getSizeAsync: async () => ({ width: 1, height: 1 }) } },
-        getBytes,
-      ),
-      base64Encode: encode,
-    } as unknown as typeof figma;
+    const f = makeFigma(
+      {
+        '1:1': { fills: [imagePaint('logo'), imagePaint('logo')] },
+        '2:2': { fills: [imagePaint('logo')] },
+      },
+      { logo: { getBytesAsync: getBytes, getSizeAsync: async () => ({ width: 1, height: 1 }) } },
+      getBytes,
+    );
 
     const result = (await createSaveImageFillsHandler(f)({
       nodeIds: ['1:1', '2:2'],
     })) as ImageFillsResult;
 
     expect(getBytes).toHaveBeenCalledTimes(1);
-    expect(encode).toHaveBeenCalledTimes(1);
-    // all three usages still carry the payload
-    expect(result.nodes.flatMap(n => n.images).map(i => i.base64)).toEqual([
-      'b64(3)',
-      'b64(3)',
-      'b64(3)',
+    expect(result.nodes.flatMap(n => n.images).map(i => i.bytes)).toEqual([
+      new Uint8Array([1, 2, 3]),
+      new Uint8Array([1, 2, 3]),
+      new Uint8Array([1, 2, 3]),
     ]);
   });
 
-  it('returns raw bytes instead of base64 when the server asks for binary', async () => {
+  it('returns raw bytes without a mode flag', async () => {
     const bytes = new Uint8Array([1, 2, 3]);
     const getBytes = vi.fn<() => Promise<Uint8Array>>(async () => bytes);
     const f = makeFigma(
@@ -110,12 +108,10 @@ describe('save_image_fills handler', () => {
     );
     const result = (await createSaveImageFillsHandler(f)({
       nodeIds: ['1:1'],
-      binary: true,
     })) as ImageFillsResult;
     expect(result.nodes[0]?.images[0]).toEqual({
       index: 0,
       imageHash: 'h',
-      base64: null,
       bytes,
       width: 10,
       height: 20,
@@ -143,15 +139,15 @@ describe('save_image_fills handler', () => {
     expect(getBytes).toHaveBeenCalledTimes(1);
   });
 
-  it('reports base64 null for an unresolvable hash and a null imageHash, without dropping scaleMode', async () => {
+  it('reports null bytes for an unresolvable hash and a null imageHash, without dropping scaleMode', async () => {
     const f = makeFigma(
       { '1:1': { fills: [imagePaint('gone'), imagePaint(null, 'TILE')] } },
       { gone: null },
     );
     const result = (await createSaveImageFillsHandler(f)({ nodeIds: ['1:1'] })) as ImageFillsResult;
     expect(result.nodes[0]?.images).toEqual([
-      { index: 0, imageHash: 'gone', base64: null, scaleMode: 'FILL' },
-      { index: 1, imageHash: null, base64: null, scaleMode: 'TILE' },
+      { index: 0, imageHash: 'gone', bytes: null, scaleMode: 'FILL' },
+      { index: 1, imageHash: null, bytes: null, scaleMode: 'TILE' },
     ]);
   });
 

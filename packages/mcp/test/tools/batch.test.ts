@@ -58,4 +58,38 @@ describe('handleBatch', () => {
     }
     expect(dispatch).not.toHaveBeenCalled();
   });
+
+  it('resolves nested import_image files and leaves URL imports byte-free', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'batch-import-image-'));
+    dirs.push(dir);
+    const filePath = join(dir, 'photo.jpg');
+    const bytes = Buffer.from([0xff, 0xd8, 0xff, 7, 8, 9]);
+    await writeFile(filePath, bytes);
+    const dispatch = vi.fn<BatchDispatcher>(async () => ({ ok: true }));
+
+    await handleBatch(
+      dispatch,
+      {
+        ops: [
+          { tool: 'import_image', params: { filePath, name: 'Local' } },
+          {
+            tool: 'import_image',
+            params: { url: 'https://example.com/photo.jpg', name: 'Remote' },
+          },
+        ],
+      },
+      'request-2',
+    );
+
+    expect(dispatch).toHaveBeenCalledWith('batch', {
+      requestId: 'request-2',
+      ops: [
+        { tool: 'import_image', params: { name: 'Local', bytes } },
+        {
+          tool: 'import_image',
+          params: { url: 'https://example.com/photo.jpg', name: 'Remote' },
+        },
+      ],
+    });
+  });
 });

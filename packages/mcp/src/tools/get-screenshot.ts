@@ -8,8 +8,7 @@ export const GET_SCREENSHOT_TOOL_NAME = 'get_screenshot';
 export const getScreenshotTool: ToolSpec = {
   name: GET_SCREENSHOT_TOOL_NAME,
   description:
-    'Export nodes as images the model can see, one image block per node: { images: [{ nodeId, format, ' +
-    'base64, width?, height?, scale?, recovered?, empty? }] }. format is PNG (default) / JPG / SVG. ' +
+    'Export nodes as images the model can see, one image block per node. format is PNG (default) / JPG / SVG. ' +
     'scale applies to raster formats; when omitted, each node is auto-fitted to a legible size ' +
     '(long edge into ~512–2576px: oversized frames scale down, tiny icons scale up ≤4x) — pass an ' +
     'explicit scale to force one. An explicit scale is capped so the long edge stays within 2576px, ' +
@@ -21,7 +20,7 @@ export const getScreenshotTool: ToolSpec = {
     'response. Past that the remaining nodes come back labelled but not inlined, with a note naming ' +
     'them — re-request those ids in a follow-up call, or use save_screenshots for many nodes at once. ' +
     'Each raster label reports the exported width×height px and the ' +
-    'scale, the anchor for mapping raster px back to design px. base64 is null for missing or ' +
+    'scale, the anchor for mapping raster px back to design px. Missing or ' +
     'non-exportable nodes. Nodes that are fully clipped or off-canvas (carousels, masks, off-screen ' +
     'states) are auto-recovered at their intrinsic bounds and flagged recovered:true. empty:true ' +
     'means the node genuinely renders nothing even unclipped (hidden / no content) so the export is blank.',
@@ -38,11 +37,8 @@ export const getScreenshotTool: ToolSpec = {
       .optional(),
   }),
   kind: 'read',
-  // See index.ts: the public path dispatches with forVision so the sandbox caps an oversized scale
-  // to what a vision model resolves. save_screenshots dispatches the same tool without it, and with
-  // `binary` instead — its bytes land on disk, so they skip base64 (export_pdf / export_video /
-  // save_image_fills send the same flag, but they are `kind: 'local'` and so are not recorded here).
-  injectedArgs: ['forVision', 'binary'],
+  // See index.ts: the public path dispatches with forVision so the sandbox caps an oversized scale.
+  injectedArgs: ['forVision'],
 };
 /** A subset of MCP tool-result content blocks this tool emits. */
 export type ScreenshotContent =
@@ -50,6 +46,9 @@ export type ScreenshotContent =
   | { type: 'image'; data: string; mimeType: string };
 
 const RASTER_MIME: Partial<Record<string, string>> = { PNG: 'image/png', JPG: 'image/jpeg' };
+
+/** MCP image content requires a base64 data string; this is the only encoding boundary. */
+const toMcpImageData = (bytes: Buffer): string => bytes.toString('base64');
 
 /**
  * How many bytes of inlined payload one result may carry.
@@ -75,10 +74,10 @@ const RASTER_MIME: Partial<Record<string, string>> = { PNG: 'image/png', JPG: 'i
  *
  * This is the batch-level twin of a cap the sandbox already applies per image: `capScaleForVision`
  * bounds one raster's pixels partly because a single image has its own provider ceiling (10 MB
- * base64 on the Claude API, 5 MB on Bedrock/Vertex). That cap bounds bytes only indirectly, through
- * resolution, and it says nothing about how many images ride in one response — which is the gap
- * this closes. The two ceilings are independent: passing this budget does not make an individual
- * export acceptable to a provider, and vice versa.
+ * encoded image data on some providers). That cap bounds bytes only indirectly, through resolution,
+ * and it says nothing about how many images ride in one response — which is the gap this closes.
+ * The two ceilings are independent: passing this budget does not make an individual export
+ * acceptable to a provider, and vice versa.
  *
  * Figma's own MCP server sidesteps all of this by taking a single node per call and pointing
  * multi-node work at a separate download tool. Figwright accepts a batch — which is genuinely
@@ -94,7 +93,7 @@ const blockBytes = (block: ScreenshotContent): number =>
 
 /**
  * Turn a get_screenshot result into MCP content blocks so the model can actually _see_ raster
- * exports (PNG/JPG as image blocks) instead of receiving an opaque base64 string. SVG is returned
+ * exports (PNG/JPG as image blocks) instead of receiving an opaque encoded string. SVG is returned
  * as readable markup text; missing/non-exportable nodes become a short text note.
  *
  * Payloads are inlined only while they fit {@linkcode INLINE_IMAGE_BUDGET_BYTES}. Past that, the
@@ -113,7 +112,7 @@ export const screenshotContent = (
   let spent = 0;
 
   for (const img of result.images) {
-    if (img.base64 === null) {
+    if (img.bytes === null) {
       blocks.push({ type: 'text', text: `${img.nodeId}: not exportable` });
       continue;
     }
@@ -131,13 +130,14 @@ export const screenshotContent = (
     const mimeType = RASTER_MIME[img.format];
     // SVG carries its payload in the label block itself; rasters split into label + image. Either
     // way the label is emitted unconditionally and only the payload is subject to the budget.
+    const bytes = Buffer.from(img.bytes);
     const payload: ScreenshotContent =
       mimeType === undefined
         ? {
             type: 'text',
-            text: `${img.nodeId} (${img.format})${emptyNote}:\n${Buffer.from(img.base64, 'base64').toString('utf8')}`,
+            text: `${img.nodeId} (${img.format})${emptyNote}:\n${bytes.toString('utf8')}`,
           }
-        : { type: 'image', data: img.base64, mimeType };
+        : { type: 'image', data: toMcpImageData(bytes), mimeType };
 
     const size = blockBytes(payload);
     if (spent + size > budgetBytes) {
@@ -178,7 +178,7 @@ export const screenshotContent = (
     // Count against what was actually exported, not what was asked for: a node that produced
     // nothing is reported on its own line and was never a candidate for inlining, so folding it
     // into this denominator would overstate how much the budget withheld.
-    const exported = result.images.filter(img => img.base64 !== null).length;
+    const exported = result.images.filter(img => img.bytes !== null).length;
     blocks.push({
       type: 'text',
       text:

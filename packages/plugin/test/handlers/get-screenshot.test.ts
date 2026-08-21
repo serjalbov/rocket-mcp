@@ -14,7 +14,6 @@ const fakeFigma = (
   calls: ExportCall[] = [],
 ): typeof figma =>
   ({
-    base64Encode: (bytes: Uint8Array) => `b64(${bytes.length})`,
     getNodeByIdAsync: async (id: string) => lookup[id] ?? null,
     // capture passthrough for assertions
     __calls: calls,
@@ -30,33 +29,33 @@ const exportable = (id: string, calls: ExportCall[]): BaseNode =>
   }) as unknown as BaseNode;
 
 describe('get_screenshot handler', () => {
-  it('exports each node to base64 with PNG + scale by default', async () => {
+  it('exports each node as native bytes with PNG + scale by default', async () => {
     const calls: ExportCall[] = [];
     const handler = createGetScreenshotHandler(
       fakeFigma({ '1:1': exportable('1:1', calls), '1:2': exportable('1:2', calls) }, calls),
     );
     const result = (await handler({ nodeIds: ['1:1', '1:2'] })) as GetScreenshotResult;
     expect(result.images).toEqual([
-      { nodeId: '1:1', format: 'PNG', base64: 'b64(3)' },
-      { nodeId: '1:2', format: 'PNG', base64: 'b64(3)' },
+      { nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([1, 2, 3]) },
+      { nodeId: '1:2', format: 'PNG', bytes: new Uint8Array([1, 2, 3]) },
     ]);
     expect(calls[0]).toEqual({ format: 'PNG', constraint: { type: 'SCALE', value: 1 } });
   });
 
-  it('returns raw bytes instead of base64 when the server asks for binary', async () => {
+  it('always returns raw bytes without a mode flag', async () => {
     const calls: ExportCall[] = [];
     const handler = createGetScreenshotHandler(
       fakeFigma({ '1:1': exportable('1:1', calls) }, calls),
     );
-    const result = (await handler({ nodeIds: ['1:1'], binary: true })) as GetScreenshotResult;
+    const result = (await handler({ nodeIds: ['1:1'] })) as GetScreenshotResult;
     expect(result.images).toEqual([
-      { nodeId: '1:1', format: 'PNG', base64: null, bytes: new Uint8Array([1, 2, 3]) },
+      { nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([1, 2, 3]) },
     ]);
   });
 
   it('keeps the recovery path on the binary payload too', async () => {
     // The clipped-node branch builds its image separately, so it needs its own guard against
-    // drifting back to base64.
+    // drifting back to encoded strings.
     const calls: ExportCall[] = [];
     const clipped = {
       id: '2:2',
@@ -69,10 +68,9 @@ describe('get_screenshot handler', () => {
       },
     } as unknown as BaseNode;
     const handler = createGetScreenshotHandler(fakeFigma({ '2:2': clipped }, calls));
-    const result = (await handler({ nodeIds: ['2:2'], binary: true })) as GetScreenshotResult;
+    const result = (await handler({ nodeIds: ['2:2'] })) as GetScreenshotResult;
     expect(result.images[0]).toMatchObject({
       nodeId: '2:2',
-      base64: null,
       bytes: new Uint8Array([9, 9]),
       recovered: true,
     });
@@ -96,14 +94,14 @@ describe('get_screenshot handler', () => {
     expect(calls[0]).toEqual({ format: 'SVG' });
   });
 
-  it('returns null base64 for missing or non-exportable nodes', async () => {
+  it('returns null bytes for missing or non-exportable nodes', async () => {
     const handler = createGetScreenshotHandler(
       fakeFigma({ '1:9': null, '1:8': { id: '1:8' } as unknown as BaseNode }),
     );
     const result = (await handler({ nodeIds: ['1:9', '1:8'] })) as GetScreenshotResult;
     expect(result.images).toEqual([
-      { nodeId: '1:9', format: 'PNG', base64: null },
-      { nodeId: '1:8', format: 'PNG', base64: null },
+      { nodeId: '1:9', format: 'PNG', bytes: null },
+      { nodeId: '1:8', format: 'PNG', bytes: null },
     ]);
   });
 
@@ -126,14 +124,14 @@ describe('get_screenshot handler', () => {
     expect(result.images[0]).toEqual({
       nodeId: '1:5',
       format: 'PNG',
-      base64: 'b64(1)',
+      bytes: new Uint8Array([0]),
       empty: true,
     });
     // no empty flag; the tiny 10×10 node auto-fits up (×4 cap) and reports its raster size
     expect(result.images[1]).toEqual({
       nodeId: '1:6',
       format: 'PNG',
-      base64: 'b64(3)',
+      bytes: new Uint8Array([1, 2, 3]),
       width: 40,
       height: 40,
       scale: 4,
@@ -158,7 +156,7 @@ describe('get_screenshot handler', () => {
     expect(result.images[0]).toEqual({
       nodeId: '1:7',
       format: 'PNG',
-      base64: 'b64(4)',
+      bytes: new Uint8Array([9, 9, 9, 9]),
       recovered: true,
       width: 512,
       height: 341,
@@ -191,7 +189,7 @@ describe('get_screenshot handler', () => {
     expect(result.images[0]).toEqual({
       nodeId: '1:8',
       format: 'PNG',
-      base64: 'b64(1)',
+      bytes: new Uint8Array([0]),
       empty: true,
       width: 50,
       height: 50,
@@ -217,7 +215,7 @@ describe('get_screenshot handler', () => {
     expect(result.images[0]).toEqual({
       nodeId: '2:1',
       format: 'PNG',
-      base64: 'b64(1)',
+      bytes: new Uint8Array([7]),
       width: 2560,
       height: 1280,
       scale: 0.64,

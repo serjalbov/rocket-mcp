@@ -7,8 +7,8 @@ describe('screenshotContent', () => {
   it('emits a label + image block for raster formats with the right mime type', () => {
     const result: GetScreenshotResult = {
       images: [
-        { nodeId: '1:1', format: 'PNG', base64: 'AAAA' },
-        { nodeId: '1:2', format: 'JPG', base64: 'BBBB' },
+        { nodeId: '1:1', format: 'PNG', bytes: new Uint8Array([0, 0, 0]) },
+        { nodeId: '1:2', format: 'JPG', bytes: new Uint8Array([4, 16, 65]) },
       ],
     };
     expect(screenshotContent(result)).toEqual([
@@ -22,11 +22,18 @@ describe('screenshotContent', () => {
   it('labels a raster with its exported size + scale when the plugin reports them', () => {
     const result: GetScreenshotResult = {
       images: [
-        { nodeId: '1:1', format: 'PNG', base64: 'AAAA', width: 1536, height: 1000, scale: 0.5 },
+        {
+          nodeId: '1:1',
+          format: 'PNG',
+          bytes: new Uint8Array([0, 0, 0]),
+          width: 1536,
+          height: 1000,
+          scale: 0.5,
+        },
         {
           nodeId: '1:2',
           format: 'PNG',
-          base64: 'BBBB',
+          bytes: new Uint8Array([4, 16, 65]),
           width: 96,
           height: 96,
           scale: 4,
@@ -45,7 +52,7 @@ describe('screenshotContent', () => {
   it('returns SVG markup as readable text rather than an image block', () => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"/>';
     const result: GetScreenshotResult = {
-      images: [{ nodeId: '1:3', format: 'SVG', base64: Buffer.from(svg).toString('base64') }],
+      images: [{ nodeId: '1:3', format: 'SVG', bytes: Buffer.from(svg) }],
     };
     const blocks = screenshotContent(result);
     expect(blocks).toHaveLength(1);
@@ -54,7 +61,7 @@ describe('screenshotContent', () => {
 
   it('notes missing / non-exportable nodes as text', () => {
     const result: GetScreenshotResult = {
-      images: [{ nodeId: '9:9', format: 'PNG', base64: null }],
+      images: [{ nodeId: '9:9', format: 'PNG', bytes: null }],
     };
     expect(screenshotContent(result)).toEqual([{ type: 'text', text: '9:9: not exportable' }]);
   });
@@ -66,11 +73,11 @@ describe('screenshotContent', () => {
   });
 
   describe('batch size budget', () => {
-    /** A raster whose base64 payload is `kb` kilobytes. */
+    /** A raster whose eventual MCP image payload is approximately `kb` kilobytes. */
     const raster = (n: number, kb: number): GetScreenshotResult['images'][number] => ({
       nodeId: `1:${n}`,
       format: 'PNG',
-      base64: 'A'.repeat(kb * 1024),
+      bytes: new Uint8Array(Math.floor((kb * 1024 * 3) / 4)),
       width: 100,
       height: 200,
       scale: 1,
@@ -163,7 +170,7 @@ describe('screenshotContent', () => {
       const big = {
         nodeId: '2:1',
         format: 'SVG' as const,
-        base64: Buffer.from(svg).toString('base64'),
+        bytes: Buffer.from(svg),
       };
       const blocks = screenshotContent({ images: [big] }, 5 * 1024);
       expect(blocks.some(b => b.type === 'text' && b.text.includes('<svg>'))).toBe(false);
@@ -172,7 +179,7 @@ describe('screenshotContent', () => {
 
     it('does not spend budget on nodes that produced nothing', () => {
       const blocks = screenshotContent(
-        { images: [{ nodeId: '9:9', format: 'PNG', base64: null }, raster(1, 10)] },
+        { images: [{ nodeId: '9:9', format: 'PNG', bytes: null }, raster(1, 10)] },
         15 * 1024,
       );
       // The unexportable node costs nothing, so the real export still fits.
@@ -185,7 +192,7 @@ describe('screenshotContent', () => {
       // own line, so counting it here would overstate what the budget withheld.
       const blocks = screenshotContent(
         {
-          images: [{ nodeId: '9:9', format: 'PNG', base64: null }, raster(1, 10), raster(2, 10)],
+          images: [{ nodeId: '9:9', format: 'PNG', bytes: null }, raster(1, 10), raster(2, 10)],
         },
         15 * 1024,
       );
