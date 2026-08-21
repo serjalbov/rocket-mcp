@@ -33,7 +33,7 @@ import { handleScanComponents, SCAN_COMPONENTS_TOOL_NAME } from './tools/scan-co
 import { captureSkew, withSkewNotice } from './tools/skew-notice.js';
 import { handleTokenMap, TOKEN_MAP_TOOL_NAME } from './tools/token-map.js';
 
-const SERVER_NAME = 'figwright';
+const SERVER_NAME = 'rpx-wright';
 const SERVER_VERSION = pkg.version;
 
 const log = (msg: string): void => {

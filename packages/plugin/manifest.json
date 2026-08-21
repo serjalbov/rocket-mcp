@@ -1,6 +1,6 @@
 {
-  "name": "Figwright",
-  "id": "figwright-dev",
+  "name": "rpx-wright",
+  "id": "rpx-wright-dev",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/index.html",
@@ -8,7 +8,7 @@
   "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": ["*"],
-    "reasoning": "The core connection is a local WebSocket relay on 127.0.0.1:3055 (the Figwright MCP server on this machine). Open domains are required because the import_image tool can additionally fetch an image from a user-supplied URL."
+    "reasoning": "The core connection is a local WebSocket relay on 127.0.0.1:3056 (the rpx-wright MCP server on this machine). Open domains are required because the import_image tool can additionally fetch an image from a user-supplied URL."
   },
   "capabilities": ["inspect"]
 }

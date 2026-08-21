@@ -190,7 +190,7 @@ describe.skipIf(!existsSync(DIST_ENTRY))('MCP wire contract (built dist)', () =>
 
   it('negotiates the protocol version and advertises its capabilities', () => {
     expect(initResult.protocolVersion).toBe(LATEST_CLIENT_PROTOCOL);
-    expect(initResult.serverInfo).toMatchObject({ name: 'figwright' });
+    expect(initResult.serverInfo).toMatchObject({ name: 'rpx-wright' });
     // Both primitives Figwright serves must be advertised, or a client never lists them.
     expect(initResult.capabilities).toMatchObject({ tools: {}, prompts: {} });
   });
