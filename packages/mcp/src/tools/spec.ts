@@ -40,10 +40,10 @@ export interface ToolSpec {
    */
   injectedArgs?: readonly string[];
   /**
-   * Required on every `kind: 'local'` spec — the plugin-facing half of a tool whose `inputSchema`
-   * is not it. A read/write tool dispatches its own schema verbatim, so the schema _is_ the
-   * contract; a local tool's handler builds the plugin payload by hand, and the schema also carries
-   * server-only fields (`outPath`, `outDir`) that must never be recorded as plugin arguments.
+   * Required on every `kind: 'local'` spec, and available to a write whose server handler consumes
+   * a local-only field before dispatch (for example a file path converted to image bytes). It names
+   * fields in `inputSchema` that never reach the plugin and must not be recorded as plugin
+   * arguments.
    *
    * An array names those server-only fields and opts the tool into the recorded contract: its
    * plugin-facing surface is `inputSchema − serverOnlyArgs + injectedArgs`. `null` says the tool

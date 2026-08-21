@@ -83,7 +83,7 @@ export const derivePluginContract = (): PluginToolContract => {
   for (const spec of ALL_TOOL_SPECS) {
     // A local tool with no sandbox handler of its own contributes nothing here; one that has a
     // handler contributes its schema minus the fields that never leave the server.
-    const serverOnly = spec.kind === 'local' ? spec.serverOnlyArgs : undefined;
+    const serverOnly = spec.serverOnlyArgs;
     if (spec.kind === 'local' && (serverOnly === null || serverOnly === undefined)) continue;
     const schemaPaths = new Set<string>();
     collect(spec.inputSchema, '', schemaPaths);
