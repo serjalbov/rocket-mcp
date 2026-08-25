@@ -15,6 +15,9 @@ Where Playwright drives the browser, Figwright drives Figma.
 
 </div>
 
+> **Rocket-MCP is a fork of [Figwright](https://github.com/awdr74100/figwright), extended by Rocketpix for AI-Station Figma workflows.**
+> It preserves Figwright's MIT license. The current differences and their upstream status are documented in [FORK.md](./FORK.md).
+
 ## What is Figwright?
 
 Figwright connects an **MCP server** to a **Figma plugin** over a local WebSocket relay, so an AI agent — Claude Code, Cursor, Codex, or any other MCP client — can work _with_ Figma instead of just looking at it.
