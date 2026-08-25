@@ -16,9 +16,9 @@ Rocketpix AI-Station workflow.
 
 | Area | Rocket-MCP change | Why it exists | Upstream candidate |
 | --- | --- | --- | --- |
-| Existing image fills | `set_image_fill` replaces an IMAGE fill on an existing Figma node instead of creating a new rectangle. | Lets an agent populate designer-prepared placeholders without changing their node identity, layout, or non-image fills. | Yes |
-| Multiple image fills | An image fill can be targeted by its index; replacement preserves colour and gradient fills. | A real Figma shape can contain more than one fill. The agent must replace only image data. | Yes |
-| Image transport | Image bytes are streamed directly; the legacy base64 transport was removed. | Keeps image-fill operations lighter and avoids oversized text payloads. | Yes |
+| Existing image fills | `set_image_fill` updates an existing Figma rectangle instead of creating a new rectangle. It removes every prior IMAGE fill, adds one new IMAGE fill, and leaves non-image fills untouched. | Lets an agent populate designer-prepared placeholders without changing their node identity, layout, or colour/gradient layers. | Yes |
+| Image replacement details | A replacement carries over the topmost previous image fill's crop, filters, opacity, visibility, blend mode, scale mode, and stack position unless a new display mode is requested. | The visual behaviour of a prepared placeholder survives an image swap. | Yes |
+| Local image validation and transport | The MCP server accepts a local PNG, JPG, or GIF path, validates the file and dimensions, then streams image bytes directly; the legacy base64 transport was removed. | Keeps image-fill operations lighter, avoids oversized text payloads, and fails before the Figma document is changed. | Yes |
 | Runtime identity | Development runtime and user-facing name are Rocket-MCP. | Distinguishes the Rocketpix extension from the upstream tool in local production. | No |
 | Text import | `import_text_stack` creates a plain text stack in one operation within a selected frame or section. | Makes a content-only webpage-to-Figma import deterministic: parent width, wrapping, 20 px text, 40 px gaps, one ordinary group, no Auto Layout. | Not in its current opinionated form |
 | Text markers | Text creation supports wrapping width and a simple whole-block Bold marker. | Allows unstyled imported content to remain readable before manual design work. | Possibly, if generalised |
