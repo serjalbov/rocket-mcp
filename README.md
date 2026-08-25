@@ -24,8 +24,10 @@ local PNG, JPG, or GIF into an **existing Figma rectangle**.
 - When replacing an image, its crop, blend mode, opacity, visibility, filters, and stack position are
   preserved unless a new display mode is explicitly requested.
 
-This is the key operation behind designer-prepared image placeholders: the agent fills the prepared
-shape instead of rebuilding the design around it.
+This is the key operation behind designer-prepared image placeholders. For example, a designer can
+lay out product cards before the product images exist, then ask an agent to generate or select the
+right images and fill every prepared card in one workflow. There is no separate manual cycle of
+generating assets, downloading them, and placing them into Figma one by one.
 
 ### 2. A lighter image pipeline
 
@@ -49,6 +51,9 @@ operation.
   actions.
 - A whole source block that is visually emphasised can be marked Bold as a simple editorial marker.
 
+Use it when a client has supplied content in a browser prototype, a webpage, or another rough source
+document and that content needs to reach Figma before design work begins. Instead of copying and
+pasting every block by hand, the agent transfers the source structure as a simple editable stack.
 This is intentionally a content-transfer tool, not a layout generator: the designer decides the final
 composition afterwards.
 
