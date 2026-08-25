@@ -32,7 +32,14 @@ const loadTextFont = async (
 export const createImportTextStackHandler =
   (figmaCtx: typeof figma): SandboxToolHandler =>
   async params => {
-    const p = (params ?? {}) as { parentId?: unknown; blocks?: unknown; name?: unknown };
+    const p = (params ?? {}) as {
+      parentId?: unknown;
+      blocks?: unknown;
+      name?: unknown;
+      x?: unknown;
+      y?: unknown;
+      width?: unknown;
+    };
     if (typeof p.parentId !== 'string') {
       throw new TypeError('import_text_stack: parentId must be a string');
     }
@@ -55,19 +62,41 @@ export const createImportTextStackHandler =
       };
     });
 
+    const originX = p.x === undefined ? 0 : p.x;
+    const originY = p.y === undefined ? 0 : p.y;
+    const requestedWidth = p.width;
+    if (typeof originX !== 'number' || !Number.isFinite(originX)) {
+      throw new TypeError('import_text_stack: x must be a finite number');
+    }
+    if (typeof originY !== 'number' || !Number.isFinite(originY)) {
+      throw new TypeError('import_text_stack: y must be a finite number');
+    }
+    if (
+      requestedWidth !== undefined &&
+      (typeof requestedWidth !== 'number' ||
+        !Number.isFinite(requestedWidth) ||
+        requestedWidth <= 0)
+    ) {
+      throw new TypeError('import_text_stack: width must be a positive finite number');
+    }
+
     const parent = await figmaCtx.getNodeByIdAsync(p.parentId);
-    if (parent === null || !('appendChild' in parent) || !('width' in parent)) {
+    if (parent === null || !('appendChild' in parent)) {
       throw new Error(
         `import_text_stack: parent ${p.parentId} not found or cannot contain children`,
       );
     }
-    const container = parent as BaseNode & ChildrenMixin & { width: number };
-    if (!Number.isFinite(container.width) || container.width <= 0) {
-      throw new Error('import_text_stack: parent must have a positive width');
+    const container = parent as BaseNode & ChildrenMixin & { width?: unknown };
+    const parentWidth = container.width;
+    const width = requestedWidth ?? parentWidth;
+    if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) {
+      throw new Error(
+        'import_text_stack: parent must have a positive width or width must be supplied',
+      );
     }
 
     const nodes: TextNode[] = [];
-    let y = 0;
+    let offsetY = 0;
     for (const block of blocks) {
       const text = figmaCtx.createText();
       // eslint-disable-next-line no-await-in-loop -- Figma text nodes must stay in source order.
@@ -75,12 +104,12 @@ export const createImportTextStackHandler =
       text.characters = block.characters;
       text.fontSize = 20;
       text.textAutoResize = 'HEIGHT';
-      text.resize(container.width, text.height);
+      text.resize(width, text.height);
       container.appendChild(text);
-      text.x = 0;
-      text.y = y;
+      text.x = originX;
+      text.y = originY + offsetY;
       nodes.push(text);
-      y += text.height + 40;
+      offsetY += text.height + 40;
     }
 
     const group = figmaCtx.group(nodes, container);
@@ -92,7 +121,7 @@ export const createImportTextStackHandler =
       groupName: group.name,
       textNodeIds: nodes.map(node => node.id),
       count: nodes.length,
-      width: container.width,
-      height: Math.max(0, y - 40),
+      width,
+      height: Math.max(0, offsetY - 40),
     };
   };

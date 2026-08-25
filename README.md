@@ -39,10 +39,10 @@ image as native binary data instead of a large base64 text payload.
 - Binary transfer keeps image operations smaller and avoids flooding an agent's context with encoded
   image data.
 
-### 3. Deterministic webpage-to-Figma text import
+### 3. Deterministic text import and splitting
 
 `import_text_stack` places a list of source text blocks into a selected Figma frame or section in one
-operation.
+operation. It can also rebuild one pasted text object as separate blocks at the same position.
 
 - Each source block becomes its own text object.
 - Text wraps to the width of the selected container.
@@ -54,6 +54,8 @@ operation.
 Use it when a client has supplied content in a browser prototype, a webpage, or another rough source
 document and that content needs to reach Figma before design work begins. Instead of copying and
 pasting every block by hand, the agent transfers the source structure as a simple editable stack.
+It can also separate a single block pasted from Telegram or a client message when its paragraphs are
+already divided by blank lines.
 This is intentionally a content-transfer tool, not a layout generator: the designer decides the final
 composition afterwards.
 

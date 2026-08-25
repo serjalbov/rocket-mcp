@@ -48,8 +48,9 @@ creating a replacement rectangle.
 ### Text import
 
 `import_text_stack` is deliberately one operation, not a sequence planned by the model. It creates
-separate 20 px text objects inside the selected frame or section, wraps them to that container's
-width, spaces them by 40 px, and groups them without Auto Layout.
+separate 20 px text objects inside a selected frame or section, or at supplied coordinates in a text
+object's parent. It wraps them to the supplied or container width, spaces them by 40 px, and groups
+them without Auto Layout.
 
 Do not turn this into a layout generator or add rereads, measurement passes, or decorative work. Its
 job is fast, plain content transfer before a designer arranges the result.

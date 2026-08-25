@@ -478,7 +478,10 @@
       "blocks[].characters",
       "name",
       "parentId",
-      "requestId"
+      "requestId",
+      "width",
+      "x",
+      "y"
     ],
     "import_svg": ["height", "name", "parentId", "requestId", "svg", "width", "x", "y"],
     "create_ellipse": ["height", "name", "parentId", "requestId", "width", "x", "y"],

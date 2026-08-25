@@ -54,4 +54,37 @@ describe('import_text_stack handler', () => {
       height: 88,
     });
   });
+
+  it('uses supplied geometry when replacing one selected text object', async () => {
+    const text = makeText('2:1');
+    const parent = { appendChild: vi.fn<(node: unknown) => void>() };
+    const group = { id: '2:2', name: 'Group', type: 'GROUP' };
+    const figmaCtx = {
+      createText: vi.fn<() => ReturnType<typeof makeText>>(() => text),
+      loadFontAsync: vi.fn<(font: FontName) => Promise<void>>(async () => {}),
+      getNodeByIdAsync: vi.fn<(id: string) => Promise<typeof parent>>(async () => parent),
+      group: vi.fn<() => typeof group>(() => group),
+    } as unknown as typeof figma;
+    const handler = createImportTextStackHandler(figmaCtx);
+
+    const result = await handler({
+      parentId: '0:1',
+      blocks: [{ characters: 'Pasted Telegram text', bold: false }],
+      name: 'TXT split',
+      x: 48,
+      y: 72,
+      width: 320,
+    });
+
+    expect(text.resize).toHaveBeenCalledWith(320, 24);
+    expect(text.x).toBe(48);
+    expect(text.y).toBe(72);
+    expect(result).toMatchObject({
+      groupId: '2:2',
+      groupName: 'TXT split',
+      count: 1,
+      width: 320,
+      height: 24,
+    });
+  });
 });
