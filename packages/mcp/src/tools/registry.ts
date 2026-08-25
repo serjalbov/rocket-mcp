@@ -65,6 +65,7 @@ import { groupNodesTool } from './group-nodes.js';
 import { iconMapTool } from './icon-map.js';
 import { importImageTool } from './import-image.js';
 import { importSvgTool } from './import-svg.js';
+import { importTextStackTool } from './import-text-stack.js';
 import { listFilesTool } from './list-files.js';
 import { lockNodesTool } from './lock-nodes.js';
 import { moveNodesTool } from './move-nodes.js';
@@ -225,6 +226,7 @@ export const ALL_TOOL_SPECS: readonly ToolSpec[] = [
   deleteComponentPropertyTool,
   detachInstanceTool,
   importImageTool,
+  importTextStackTool,
   importSvgTool,
   createEllipseTool,
   createComponentTool,

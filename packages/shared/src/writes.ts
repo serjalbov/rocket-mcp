@@ -28,6 +28,9 @@ export const CreateResultSchema = z.object({
   nodeId: z.string(),
   name: z.string(),
   type: z.string(),
+  /** The node's measured bounds after creation, when the editor exposes them. */
+  width: z.number().optional(),
+  height: z.number().optional(),
 });
 export type CreateResult = z.infer<typeof CreateResultSchema>;
 

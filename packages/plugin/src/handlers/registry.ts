@@ -58,6 +58,7 @@ import { createGetViewportHandler } from './get-viewport.js';
 import { createGroupNodesHandler } from './group-nodes.js';
 import { createImportImageHandler } from './import-image.js';
 import { createImportSvgHandler } from './import-svg.js';
+import { createImportTextStackHandler } from './import-text-stack.js';
 import { createListFilesHandler } from './list-files.js';
 import { createSetLockedHandler } from './lock-nodes.js';
 import { createMoveNodesHandler } from './move-nodes.js';
@@ -191,6 +192,7 @@ export const createSandboxHandlers = (figmaCtx: typeof figma): SandboxHandlers =
     delete_component_property: createDeleteComponentPropertyHandler(figmaCtx),
     detach_instance: createDetachInstanceHandler(figmaCtx),
     import_image: createImportImageHandler(figmaCtx),
+    import_text_stack: createImportTextStackHandler(figmaCtx),
     import_svg: createImportSvgHandler(figmaCtx),
     create_ellipse: createCreateEllipseHandler(figmaCtx),
     create_component: createCreateComponentHandler(figmaCtx),
